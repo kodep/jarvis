@@ -1,6 +1,14 @@
+# Description:
+#   Повзоляет увидеть сиськи и попки
+#
+# Commands:
+#   jarv покажи сиськи (show boobs) - Покажет Вам традиционный символ плодородия
+#   jarv покажи попки (show butts) - Покажет Вам женские ягодицы
+
 request = require('axios')
 
 randomInt = (high) -> Math.floor(Math.random() * high)
+
 
 module.exports = (robot) ->
   robot.respond /(покажи сиськи)|(show boobs)/i, (res) ->
@@ -15,4 +23,4 @@ module.exports = (robot) ->
     request.get(boobsUrl)
     .then((response) -> "http://media.obutts.ru/#{response.data[0].preview}")
     .then((result) -> res.reply(result))
-    .catch((err) -> res.reply('Я занят, попросите позже. Никаких сисек!'))
+    .catch((err) -> res.reply('Я занят, попросите позже. Никаких попок!'))
