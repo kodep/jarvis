@@ -10,4 +10,4 @@ module.exports = (robot) ->
   #   res.reply res.random MISS_REPLIES
   robot.error (err, res) ->
     robot.logger.error err
-    res.reply(res.random REPLIES) if res?
+    res.reply(res.random ERROR_REPLIES) if res?
