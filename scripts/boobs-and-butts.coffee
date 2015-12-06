@@ -2,8 +2,8 @@
 #   Повзоляет посмотреть сиськи и попки
 #
 # Commands:
-#   hubot покажи сиськи (show boobs) - Покажет Вам традиционный символ плодородия
-#   hubot покажи попки (show butts) - Покажет Вам женские ягодицы
+#   hubot покажи сиськи(show boobs)|(хочу сисек)|(сиськи в студию) - Покажет Вам традиционный символ плодородия
+#   hubot покажи попки (show butts)|(хочу попок)|(попки в студию) - Покажет Вам женские ягодицы
 #
 # Author:
 #   khmm12@gmail.com
@@ -16,20 +16,40 @@ module.exports = (robot) ->
   boobsService = new Boobs()
   buttsService = new Butts()
 
-  robot.respond /(покажи сиськи)|(show boobs)/i, (res) ->
+  # Boobs
+  #
+  robot.respond /(покажи сиськи)|(хочу сисек)|(сиськи в студию)|(show boobs)/i, (res) ->
     boobsService.getRandom()
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
-      res.reply('Я занят, попросите позже. Никаких сисек!')
+      res.reply 'Я занят, попросите позже. Никаких сисек!'
     )
 
-  robot.respond /(покажи попки)|(show butts)/i, (res) ->
+  robot.router.post '/hubot/boobs', (req, res) ->
+    boobsService.getRandom()
+    .then((result) -> res.json({text: result}))
+    .catch((err) ->
+      robot.logger.error err
+      res.json({text: 'Я занят, попросите позже. Никаких сисек!'})
+    )
+
+  # Butts
+  #
+  robot.respond /(покажи попки)|(хочу попок)|(попки в студию)|(show butts)/i, (res) ->
     buttsService.getRandom()
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
-      res.reply('Я занят, попросите позже. Никаких попок!')
+      res.reply 'Я занят, попросите позже. Никаких попок!'
+    )
+
+  robot.router.post '/hubot/butts', (req, res) ->
+    buttsService.getRandom()
+    .then((result) -> res.json({text: result}))
+    .catch((err) ->
+      robot.logger.error err
+      res.json({text: 'Я занят, попросите позже. Никаких попок!'})
     )
 
 
@@ -48,9 +68,9 @@ class Pretty
       request.get("#{@API_URL}/count")
       .then((response) =>
         count = response.data[0].count
-        resolve(count)
         @_count = count
         @_lastFetched = time
+        resolve count
       )
       .catch((err) =>
          return resolve(@_count) if @_count?
