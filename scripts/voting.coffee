@@ -70,10 +70,11 @@ class Voting
   vote: (choice, msg) ->
     return msg.reply('Сейчас нет голосований') unless @isCreated()
     return msg.reply('Голосование уже закончено') unless @isActive()
-    if /\d{1,2}$/i.test(choice)
+    if /^\d{1,2}$/i.test(choice)
       choiceID = parseInt(choice, 10)
     else
       choiceID = _.findKey(@choices, (_choice) -> choice is _choice)
+    console.log(choiceID);
     return msg.reply('Господин, такого варианта нет') unless @choices[choiceID]
     votersForChoice = @votes[choiceID]
     sender = msg.message.user.name
