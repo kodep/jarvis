@@ -7,7 +7,7 @@
 #   hubot открой голосование - Откроет голосование обратно
 #   hubot покажи результаты голосования - Покажет результаты голосования
 #   hubot покажи варианты голосования|Какие варианты голосования? - Покажет варианты голосования
-#   hubot голосую|голос за <id варианта>|<название варианта> - Проголосует за указанный вариант
+#   hubot (голосую|голос) за (<id варианта>|<название варианта>) - Проголосует за указанный вариант
 #
 # Author:
 #   khmm12@gmail.com
@@ -45,7 +45,7 @@ class Voting
                 .filter((value) -> not _.isEmpty(value))
                 .map((value, index) -> [index + 1, value])
                 .object().value()
-    return msg.reply('Господин, для начала завершите предыдущее голосование') if @isCreated()
+    return msg.reply('Господин, для начала завершите предыдущее голосование') if @isActive()
     return msg.reply('Господин, укажите варианты для начала') if _.isEmpty(choices)
     @choices = choices
     ids = _.keys(@choices)
@@ -74,7 +74,6 @@ class Voting
       choiceID = parseInt(choice, 10)
     else
       choiceID = _.findKey(@choices, (_choice) -> choice is _choice)
-    console.log(choiceID);
     return msg.reply('Господин, такого варианта нет') unless @choices[choiceID]
     votersForChoice = @votes[choiceID]
     sender = msg.message.user.name
