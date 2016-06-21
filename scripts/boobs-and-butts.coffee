@@ -1,5 +1,5 @@
 # Description:
-#   Повзоляет посмотреть сиськи и попки
+#   Позволяет посмотреть сиськи и попки
 #
 # Commands:
 #   hubot покажи сиськи(show boobs)|(хочу сисек)|(сиськи в студию) - Покажет Вам традиционный символ плодородия
@@ -31,7 +31,7 @@ module.exports = (robot) ->
     .then((result) -> res.json({text: result}))
     .catch((err) ->
       robot.logger.error err
-      res.json({text: 'Я занят, попросите позже. Никаких сисек!'})
+      res.status(500).json({text: 'Я занят, попросите позже. Никаких сисек!'})
     )
 
   # Butts
@@ -49,7 +49,7 @@ module.exports = (robot) ->
     .then((result) -> res.json({text: result}))
     .catch((err) ->
       robot.logger.error err
-      res.json({text: 'Я занят, попросите позже. Никаких попок!'})
+      res.status(500).json({text: 'Я занят, попросите позже. Никаких попок!'})
     )
 
 
