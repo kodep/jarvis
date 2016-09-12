@@ -44,12 +44,12 @@ class Voting
     choices = _(rawChoices.split(/, /)).map((value) -> value.trim())
                 .filter((value) -> not _.isEmpty(value))
                 .map((value, index) -> [index + 1, value])
-                .object().value()
+                .fromPairs().value()
     return msg.reply('Господин, для начала завершите предыдущее голосование') if @isActive()
     return msg.reply('Господин, укажите варианты для начала') if _.isEmpty(choices)
     @choices = choices
     ids = _.keys(@choices)
-    @votes = _.object(_.map(ids, (value) -> [value, []]))
+    @votes = _.fromPairs(_.map(ids, (value) -> [value, []]))
     @active = true
     msg.reply('Принято, мой господин')
     @sendChoices(msg)
@@ -102,7 +102,7 @@ class Voting
     # Transform votes object to [[id, [names]]]
     # then to [{id: <choice id>, choice: <name>, count: <votes number>, votes: [<nicknames of voters>]}]
     # sorted by votes number
-    _(@votes).pairs()
+    _(@votes).toPairs()
     .map((pair) => { id: pair[0], choice: @choices[pair[0]], count: pair[1].length, votes: pair[1] })
     .sortBy((vote) -> -vote.count)
     .value()
