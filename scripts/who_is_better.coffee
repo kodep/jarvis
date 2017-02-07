@@ -38,10 +38,10 @@ module.exports = (robot) ->
 
 
 class WhoIsBetterAPI
-  API_URL: "#{process.env.KODER_TIMER_API}/export_to_jarvis"
+  API_URL = "#{process.env.KODER_TIMER_API}/export_to_jarvis"
   EMPLOYEE_NAME_WIDTH = 25
   getCount: (field, month) ->
-    request.get("#{@API_URL}?field=#{field}&month=#{month}")
+    request.get("#{API_URL}?field=#{field}&month=#{month}")
     .then((response) =>
       bestEmployees = response.data
       text = bestEmployees
