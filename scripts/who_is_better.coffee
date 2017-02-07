@@ -19,7 +19,7 @@ module.exports = (robot) ->
   # Duration This Month
   #
   robot.respond /(кто молодец в этом месяце)/i, (res) ->
-    whoIsBetter.getCount('duration', 'current')
+    whoIsBetter.query('duration', 'current')
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
@@ -29,7 +29,7 @@ module.exports = (robot) ->
   # Duration Previous Month
   #
   robot.respond /(кто молодец в прошлом месяце)/i, (res) ->
-    whoIsBetter.getCount('duration', 'previous')
+    whoIsBetter.query('duration', 'previous')
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
@@ -40,7 +40,7 @@ module.exports = (robot) ->
 class WhoIsBetterAPI
   API_URL = "#{process.env.KODER_TIMER_API}/export_to_jarvis"
   EMPLOYEE_NAME_WIDTH = 25
-  getCount: (field, month) ->
+  query: (field, month) ->
     request.get("#{API_URL}?field=#{field}&month=#{month}")
     .then((response) =>
       bestEmployees = response.data
