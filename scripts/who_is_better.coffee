@@ -25,31 +25,6 @@ module.exports = (robot) ->
       res.reply 'Я занят, попросите позже'
     )
 
-  robot.router.post '/hubot/duration_this_month', (req, res) ->
-    whoIsBetter.getCount('duration', 'current')
-    .then((result) -> res.json({text: result}))
-    .catch((err) ->
-      robot.logger.error err
-      res.status(500).json({text: 'Я занят, попросите позже'})
-    )
-  # Approved This Month
-  #
-  # robot.respond /(кто самый оплачиваемый)/i, (res) ->
-  #   durationService.getCount('approved_duration', 'current')
-  #   .then((result) -> res.send(result))
-  #   .catch((err) ->
-  #     robot.logger.error err
-  #     res.reply 'Я занят, попросите позже'
-  #   )
-  #
-  # robot.router.post '/hubot/approved_duration_this_month', (req, res) ->
-  #   durationService.getCount('approved_duration', 'current')
-  #   .then((result) -> res.json({text: result}))
-  #   .catch((err) ->
-  #     robot.logger.error err
-  #     res.status(500).json({text: 'Я занят, попросите позже'})
-  #   )
-
   # Duration Previous Month
   #
   robot.respond /(кто молодец в прошлом месяце)/i, (res) ->
@@ -60,31 +35,6 @@ module.exports = (robot) ->
       res.reply 'Я занят, попросите позже'
     )
 
-  robot.router.post '/hubot/duration_previous_month', (req, res) ->
-    whoIsBetter.getCount('duration', 'previos')
-    .then((result) -> res.json({text: result}))
-    .catch((err) ->
-      robot.logger.error err
-      res.status(500).json({text: 'Я занят, попросите позже'})
-    )
-
-  # Approved Previous Month
-  #
-  # robot.respond /(кто был самым оплачиваемый)|(кому мы скажем спасибо за прошлый месяц)|(кто в прошлом месяце принес денег)/i, (res) ->
-  #   durationService.getCount('approved_duration', 'previous')
-  #   .then((result) -> res.send(result))
-  #   .catch((err) ->
-  #     robot.logger.error err
-  #     res.reply 'Я занят, попросите позже'
-  #   )
-  #
-  # robot.router.post '/hubot/approved_duration_previous_month', (req, res) ->
-  #   durationService.getCount('approved_duration', 'previos')
-  #   .then((result) -> res.json({text: result}))
-  #   .catch((err) ->
-  #     robot.logger.error err
-  #     res.status(500).json({text: 'Я занят, попросите позже'})
-  #   )
 
 class WhoIsBetterAPI
   TTL: 5
