@@ -1,14 +1,24 @@
+# Description:
+#   Позволяет узнать лучших сотрудников (в плане отработанного времени) за этот или за прошлый месяц
+#
+# Commands:
+#   hubot кто молодец в этом месяце - Покажет Вам список сотрудников с их отработанным временем, по текущему месяцу
+#   hubot кто молодец в прошлом месяце - Покажет список сотрудников с их отработанным временем, за прошлый месяц
+#
+# Author:
+#   artem.telnov@kodep.ru
+#
+
 request = require('axios')
 Promise = require('bluebird')
 
 module.exports = (robot) ->
-  durationService = new Duration()
-
+  whoIsBetter = new WhoIsBetterAPI()
 
   # Duration This Month
   #
   robot.respond /(кто молодец в этом месяце)/i, (res) ->
-    durationService.getCount('duration', 'current')
+    whoIsBetter.getCount('duration', 'current')
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
@@ -16,7 +26,7 @@ module.exports = (robot) ->
     )
 
   robot.router.post '/hubot/duration_this_month', (req, res) ->
-    durationService.getCount('duration', 'current')
+    whoIsBetter.getCount('duration', 'current')
     .then((result) -> res.json({text: result}))
     .catch((err) ->
       robot.logger.error err
@@ -43,7 +53,7 @@ module.exports = (robot) ->
   # Duration Previous Month
   #
   robot.respond /(кто молодец в прошлом месяце)/i, (res) ->
-    durationService.getCount('duration', 'previos')
+    whoIsBetter.getCount('duration', 'previous')
     .then((result) -> res.send(result))
     .catch((err) ->
       robot.logger.error err
@@ -51,7 +61,7 @@ module.exports = (robot) ->
     )
 
   robot.router.post '/hubot/duration_previous_month', (req, res) ->
-    durationService.getCount('duration', 'previos')
+    whoIsBetter.getCount('duration', 'previos')
     .then((result) -> res.json({text: result}))
     .catch((err) ->
       robot.logger.error err
@@ -61,7 +71,7 @@ module.exports = (robot) ->
   # Approved Previous Month
   #
   # robot.respond /(кто был самым оплачиваемый)|(кому мы скажем спасибо за прошлый месяц)|(кто в прошлом месяце принес денег)/i, (res) ->
-  #   durationService.getCount('approved_duration', 'previos')
+  #   durationService.getCount('approved_duration', 'previous')
   #   .then((result) -> res.send(result))
   #   .catch((err) ->
   #     robot.logger.error err
@@ -76,30 +86,21 @@ module.exports = (robot) ->
   #     res.status(500).json({text: 'Я занят, попросите позже'})
   #   )
 
-
-
-class Pretty
+class WhoIsBetterAPI
   TTL: 5
-
+  API_URL: "#{process.env.KODER_TIMER_API}/export_to_jarvis"
   getCount: (field, month) ->
-    time = new Date().valueOf()
     new Promise((resolve, reject) =>
-      return resolve(@_best_name) if @_lastFetched? && (@_lastFetched + @TTL * 1000) - time > 0
       request.get("#{@API_URL}?field=#{field}&month=#{month}")
       .then((response) =>
-        best_name = response.data
-        best_name = best_name.map (i) ->  [ i[0] = i[0] + ' '.repeat(25 - i[0].length), i[1]].join ' '
-        best_name = best_name.join '\n'
-        @_best_name = best_name
-        @_lastFetched = time
-        resolve best_name
+        ArrayTheBest = response.data
+        # поля с именем приводим к общему размеру. тем самым выравниваем поля с временем.
+        ArrayTheBest = ArrayTheBest.map (i) ->  [ i[0] = i[0] + ' '.repeat(25 - i[0].length), i[1]].join ' '
+        ArrayTheBest = ArrayTheBest.join '\n'
+        @_best_name = ArrayTheBest
+        resolve ArrayTheBest
       )
-      .catch((err) =>
-         return resolve(@_best_name) if @_best_name?
+      .then((err) =>
          reject err
       )
     )
-
-
-class Duration extends Pretty
-  API_URL: 'https://timer.kodep.ru/export_to_jarvis'
