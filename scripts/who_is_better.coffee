@@ -11,6 +11,7 @@
 
 request = require('axios')
 Promise = require('bluebird')
+_ = require('lodash')
 
 module.exports = (robot) ->
   whoIsBetter = new WhoIsBetterAPI()
@@ -37,20 +38,18 @@ module.exports = (robot) ->
 
 
 class WhoIsBetterAPI
-  TTL: 5
   API_URL: "#{process.env.KODER_TIMER_API}/export_to_jarvis"
+  EMPLOYEE_NAME_WIDTH = 25
   getCount: (field, month) ->
-    new Promise((resolve, reject) =>
-      request.get("#{@API_URL}?field=#{field}&month=#{month}")
-      .then((response) =>
-        ArrayTheBest = response.data
-        # поля с именем приводим к общему размеру. тем самым выравниваем поля с временем.
-        ArrayTheBest = ArrayTheBest.map (i) ->  [ i[0] = i[0] + ' '.repeat(25 - i[0].length), i[1]].join ' '
-        ArrayTheBest = ArrayTheBest.join '\n'
-        @_best_name = ArrayTheBest
-        resolve ArrayTheBest
+    request.get("#{@API_URL}?field=#{field}&month=#{month}")
+    .then((response) =>
+      bestEmployees = response.data
+      text = bestEmployees
+      .map((entity) ->
+        [employee, time] = entity
+        entityText = [_.padEnd(employee, EMPLOYEE_NAME_WIDTH), time].join(' ')
+        entityText
       )
-      .then((err) =>
-         reject err
-      )
+      .join('\n')
+      text
     )
