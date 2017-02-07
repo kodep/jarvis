@@ -51,5 +51,5 @@ class WhoIsBetterAPI
         entityText
       )
       .join('\n')
-      text
+      "```#{text}```"
     )
