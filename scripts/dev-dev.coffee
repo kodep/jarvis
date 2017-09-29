@@ -9,5 +9,5 @@
 #
 
 module.exports = (robot) ->
-  robot.send /код-код!*/i, (res) ->
-    res.reply('https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif')
+  robot.respond /код-код!*/i, (res) ->
+    res.send('https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif')
