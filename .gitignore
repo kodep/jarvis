@@ -1,3 +1,17 @@
+# Dependency directories
 node_modules
-.DS_Store*
+
+# OS
+.DS_Store
+
+# Runtime
 .hubot_history
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

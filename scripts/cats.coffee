@@ -9,7 +9,6 @@
 #
 
 request = require('axios')
-Promise = require('bluebird')
 
 API_ENDPOINT = 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cats+animal'
 

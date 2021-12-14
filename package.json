@@ -4,18 +4,18 @@
   "private": true,
   "author": "maksim.khvatalin@kodep.ru",
   "description": "Butler of Kodep LLC",
-  "dependencies": {
-    "axios": "0.16.2",
-    "bluebird": "^3.4.1",
-    "hubot": "3.0.1",
-    "hubot-help": "1.0.1",
-    "hubot-heroku-keepalive": "^1.0.2",
-    "hubot-redis-brain": "1.0.0",
-    "hubot-slack": "4.4.0",
-    "lodash": "^4.13.1"
-  },
   "engines": {
-    "node": ">= 4.0.x",
-    "npm": ">= 3.3.x"
+    "node": "^14 || ^16",
+    "yarn": ">=1"
+  },
+  "packageManager": "yarn@3.1.1",
+  "dependencies": {
+    "axios": "0.24.0",
+    "hubot": "3.3.2",
+    "hubot-help": "1.0.1",
+    "hubot-heroku-keepalive": "^1.0.3",
+    "hubot-redis-brain": "1.0.0",
+    "hubot-slack": "4.9.0",
+    "lodash": "^4.17.21"
   }
 }

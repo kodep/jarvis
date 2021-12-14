@@ -1,16 +1,8 @@
-# Description:
-#   Позволяет посмотреть сиськи и попки
-#
-# Commands:
-#   hubot покажи сиськи(show boobs)|(хочу сисек)|(сиськи в студию) - Покажет Вам традиционный символ плодородия
-#   hubot покажи попки (show butts)|(хочу попок)|(попки в студию) - Покажет Вам женские ягодицы
-#
 # Author:
 #   khmm12@gmail.com
 #
 
 request = require('axios')
-Promise = require('bluebird')
 
 module.exports = (robot) ->
   boobsService = new Boobs()

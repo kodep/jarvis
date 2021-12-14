@@ -10,7 +10,6 @@
 #
 
 request = require('axios')
-Promise = require('bluebird')
 _ = require('lodash')
 
 module.exports = (robot) ->
