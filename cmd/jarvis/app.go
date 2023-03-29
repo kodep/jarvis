@@ -18,8 +18,18 @@ func ProvideApp(logger *zap.Logger, client *mattermost.Client, listener Listener
 	return App{logger, client, listener}
 }
 
-func ProvideLogger() (*zap.Logger, func(), error) {
-	logger, err := zap.NewDevelopment()
+func ProvideLogger(config Config) (*zap.Logger, func(), error) {
+	var (
+		logger *zap.Logger
+		err    error
+	)
+
+	if config.Mode == ModeDevelopment {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create zap logger: %w", err)
 	}

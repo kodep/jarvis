@@ -12,9 +12,11 @@ type Config struct {
 	BotToken       string
 	BotTeamName    string
 	BoobsChannelID string
+	Mode           ModeType
 }
 
 type Env = string
+type ModeType string
 
 const (
 	MattermostURL  Env = "MATTERMOST_URL"
@@ -23,10 +25,22 @@ const (
 	BoobsChannelID Env = "BOOBS_CHANNEL_ID"
 )
 
+const (
+	ModeDevelopment ModeType = "development"
+	ModeProduction  ModeType = "production"
+)
+
+var DefaultMode = "development" //nolint:gochecknoglobals // It's injected variable
+
 func ProvideConfig() (Config, error) {
 	_ = godotenv.Load()
 
-	c := Config{}
+	mode := ModeDevelopment
+	if DefaultMode == "production" {
+		mode = ModeProduction
+	}
+
+	c := Config{Mode: mode}
 
 	if v := os.Getenv(MattermostURL); v != "" {
 		c.MattermostURL = v

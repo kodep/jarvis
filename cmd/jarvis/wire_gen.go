@@ -13,13 +13,12 @@ import (
 // Injectors from wire.go:
 
 func InitializeApp() (App, func(), error) {
-	logger, cleanup, err := ProvideLogger()
+	config, err := ProvideConfig()
 	if err != nil {
 		return App{}, nil, err
 	}
-	config, err := ProvideConfig()
+	logger, cleanup, err := ProvideLogger(config)
 	if err != nil {
-		cleanup()
 		return App{}, nil, err
 	}
 	client := ProvideMattermostClient(config)
