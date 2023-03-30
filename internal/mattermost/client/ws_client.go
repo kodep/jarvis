@@ -133,8 +133,6 @@ func (c *WSClient) startListener(ctx context.Context, evCh chan<- *model.WebSock
 				return true
 			}
 		case <-ctx.Done():
-			c.ws.Close()
-			c.ws = nil
 			return false
 		}
 	}
