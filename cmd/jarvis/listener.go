@@ -19,16 +19,12 @@ type Listener struct {
 	handler  EventsHandler
 }
 
-func NewListener(logger *zap.Logger, client *mattermost.Client, handler EventsHandler) Listener {
-	return Listener{
+func ProvideListener(logger *zap.Logger, client *mattermost.Client, handler EventsHandler) (Listener, func()) {
+	l := Listener{
 		client:  client,
 		logger:  logger,
 		handler: handler,
 	}
-}
-
-func ProvideListener(logger *zap.Logger, client *mattermost.Client, handler EventsHandler) (Listener, func()) {
-	l := NewListener(logger, client, handler)
 	return l, l.Close
 }
 
