@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"time"
 
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"go.uber.org/zap"
+)
+
+const (
+	connectAttemptTimeout = 10 * time.Second
 )
 
 type App struct {
@@ -18,9 +23,7 @@ func ProvideApp(logger *zap.Logger, client *mattermost.Client, listener Listener
 }
 
 func (a App) Run(ctx context.Context) {
-	if err := a.client.Connect(); err != nil {
-		a.logger.Fatal("Failed to connect to mattermost", zap.Error(err))
-	}
+	a.connectUntilReady(ctx)
 
 	a.logger.Info("Connected to Mattermost",
 		zap.String("ID", a.client.User().Id),
@@ -32,4 +35,22 @@ func (a App) Run(ctx context.Context) {
 	a.listener.Listen(ctx)
 
 	a.logger.Info("Shutting down")
+}
+
+func (a App) connectUntilReady(ctx context.Context) {
+	var err error
+
+	for {
+		if err = a.client.Connect(); err == nil {
+			return
+		}
+
+		a.logger.Error("Failed to connect to mattermost. Retry", zap.Error(err))
+
+		select {
+		case <-time.After(connectAttemptTimeout):
+		case <-ctx.Done():
+			return
+		}
+	}
 }
