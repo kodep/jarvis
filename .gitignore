@@ -34,3 +34,6 @@ jarvis
 .env
 .env.*
 !.env.example
+
+# Dev environment
+dev/*/data

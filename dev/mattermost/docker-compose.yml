@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:15.2-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data
+    environment:
+      - TZ=UTC
+      - POSTGRES_USER=mattermost
+      - POSTGRES_PASSWORD=mattermost
+      - POSTGRES_DB=mattermost
+  mattermost:
+    depends_on:
+      - postgres
+    image: mattermost/mattermost-team-edition:7.2.0
+    restart: unless-stopped
+    ports:
+      - 8065:8065
+      - 8443:8443/udp
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./data/mattermost/config:/mattermost/config
+      - ./data/mattermost/data:/mattermost/data
+      - ./data/mattermost/logs:/mattermost/logs
+      - ./data/mattermost/plugins:/mattermost/plugins
+      - ./data/mattermost/client/plugins:/mattermost/client/plugins
+      - ./data/mattermost/bleve-indexes:/mattermost/bleve-indexes
+    environment:
+      - TZ=UTC
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://mattermost:mattermost@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
+      - MM_BLEVESETTINGS_INDEXDIR=/mattermost/bleve-indexes
+      - MM_SERVICESETTINGS_SITEURL=http://localhost:8443

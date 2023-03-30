@@ -75,7 +75,12 @@ func (c *Client) Websocket() (*model.WebSocketClient, error) {
 		return nil, fmt.Errorf("failed to construct websocket url: %w", err)
 	}
 
-	u.Scheme = "wss"
+	scheme := u.Scheme
+
+	u.Scheme = "ws"
+	if scheme == "https" {
+		u.Scheme = "wss"
+	}
 
 	ws, err := model.NewWebSocketClient4(u.String(), c.options.Token)
 	if err != nil {
