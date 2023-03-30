@@ -17,6 +17,7 @@ func InitializeApp() (App, func(), error) {
 			ProvideListener,
 			ProvideLogger,
 			ProvideMattermostClient,
+			ProvideMattermostWSClient,
 			oboobs.NewBoobsClient,
 			oboobs.NewButtsClient,
 		),

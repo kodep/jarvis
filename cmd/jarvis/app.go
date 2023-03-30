@@ -28,10 +28,6 @@ func (a App) Run(ctx context.Context) {
 		zap.String("Team", a.client.Team().Name),
 	)
 
-	if err := a.listener.Connect(); err != nil {
-		a.logger.Fatal("Failed to start listener", zap.Error(err))
-	}
-
 	a.logger.Info("Listen for events")
 	a.listener.Listen(ctx)
 

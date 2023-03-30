@@ -35,3 +35,16 @@ func ProvideMattermostClient(conf Config) *mattermost.Client {
 		Token:    conf.BotToken,
 	})
 }
+
+func ProvideMattermostWSClient(logger *zap.Logger, conf Config) (*mattermost.WSClient, error) {
+	wsURL, err := mattermost.GetWSURL(conf.MattermostURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get websocket URL: %w", err)
+	}
+
+	return mattermost.NewWSClient(mattermost.WSClientOptions{
+		URL:    wsURL,
+		Token:  conf.BotToken,
+		Logger: logger,
+	}), nil
+}

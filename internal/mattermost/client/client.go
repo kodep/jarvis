@@ -2,16 +2,18 @@ package client
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/mattermost/mattermost-server/v6/model"
 )
 
 type Client struct {
-	client  *model.Client4
-	options Options
-	team    *model.Team
-	user    *model.User
+	url      string
+	token    string
+	teamName string
+
+	client *model.Client4
+	team   *model.Team
+	user   *model.User
 }
 
 type Options struct {
@@ -25,8 +27,10 @@ func New(options Options) *Client {
 	client.SetToken(options.Token)
 
 	return &Client{
-		client:  client,
-		options: options,
+		url:      options.APIURL,
+		token:    options.Token,
+		teamName: options.TeamName,
+		client:   client,
 	}
 }
 
@@ -36,7 +40,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to get bot account: %w", err)
 	}
 
-	team, _, err := c.client.GetTeamByName(c.options.TeamName, "")
+	team, _, err := c.client.GetTeamByName(c.teamName, "")
 	if err != nil {
 		return fmt.Errorf("failed to get bot team: %w", err)
 	}
@@ -67,25 +71,4 @@ func (c *Client) Team() *model.Team {
 
 func (c *Client) User() *model.User {
 	return c.user
-}
-
-func (c *Client) Websocket() (*model.WebSocketClient, error) {
-	u, err := url.Parse(c.options.APIURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct websocket url: %w", err)
-	}
-
-	scheme := u.Scheme
-
-	u.Scheme = "ws"
-	if scheme == "https" {
-		u.Scheme = "wss"
-	}
-
-	ws, err := model.NewWebSocketClient4(u.String(), c.options.Token)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create websocket client: %w", err)
-	}
-
-	return ws, nil
 }
