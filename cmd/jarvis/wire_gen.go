@@ -22,16 +22,23 @@ func InitializeApp() (App, func(), error) {
 		return App{}, nil, err
 	}
 	client := ProvideMattermostClient(config)
-	logsHandler := ProvideLogsHandler(logger)
+	wsClient, err := ProvideMattermostWSClient(logger, config)
+	if err != nil {
+		cleanup()
+		return App{}, nil, err
+	}
+	mainLogsHandler := provideLogsHandler(logger)
 	boobsClient := oboobs.NewBoobsClient()
-	boobsHandler := ProvideBoobsHandler(client, boobsClient, config)
 	buttsClient := oboobs.NewButtsClient()
-	buttsHandler := ProvideButtsHandler(client, buttsClient, config)
-	eventsHandler := ProvideEventsHandler(logsHandler, boobsHandler, buttsHandler)
-	listener, cleanup2 := ProvideListener(logger, client, eventsHandler)
+	mainBoobsAndButtsHandler := boobsAndButtsHandler{
+		Client: client,
+		Boobs:  boobsClient,
+		Butts:  buttsClient,
+	}
+	eventsHandler := provideEventsHandler(mainLogsHandler, config, mainBoobsAndButtsHandler)
+	listener := ProvideListener(logger, client, wsClient, eventsHandler)
 	app := ProvideApp(logger, client, listener)
 	return app, func() {
-		cleanup2()
 		cleanup()
 	}, nil
 }

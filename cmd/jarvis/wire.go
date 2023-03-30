@@ -11,12 +11,13 @@ import (
 func InitializeApp() (App, func(), error) {
 	panic(
 		wire.Build(
-			ProvideApp,
-			ProvideLogger,
-			ProvideConfig,
-			ProvideMattermostClient,
-			ProvideListener,
 			EventsHandlersSet,
+			ProvideApp,
+			ProvideConfig,
+			ProvideListener,
+			ProvideLogger,
+			ProvideMattermostClient,
+			ProvideMattermostWSClient,
 			oboobs.NewBoobsClient,
 			oboobs.NewButtsClient,
 		),
