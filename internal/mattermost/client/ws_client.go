@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/kodep/jarvis/internal/mattermost/events"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"go.uber.org/zap"
 )
@@ -13,7 +14,6 @@ import (
 const (
 	wsRetryTimeout     = 10 * time.Second
 	wsReconnectTimeout = 10 * time.Second
-	wsListenersCount   = 4
 )
 
 type wsDisonnected bool
@@ -33,7 +33,7 @@ type WSClient struct {
 }
 
 type WSListenChannels struct {
-	Events chan *model.WebSocketEvent
+	Events chan events.Event
 	Errors chan error
 }
 
@@ -65,7 +65,7 @@ func GetWSURL(apiURL string) (string, error) {
 	return u.String(), nil
 }
 
-func (c *WSClient) Start(ctx context.Context, channels WSListenChannels) {
+func (c *WSClient) Start(ctx context.Context, listenersNumber int, channels WSListenChannels) {
 	defer func() {
 		if c.ws != nil {
 			c.ws.Close()
@@ -85,7 +85,7 @@ func (c *WSClient) Start(ctx context.Context, channels WSListenChannels) {
 		}
 
 		c.logger.Debug("Listen Mattermost events")
-		disconnected := c.startListeners(ctx, channels.Events)
+		disconnected := c.startListeners(ctx, listenersNumber, channels)
 		if disconnected {
 			c.logger.Debug("Disconneted from Mattermost server. Retrying.")
 		}
@@ -98,15 +98,15 @@ func (c *WSClient) Start(ctx context.Context, channels WSListenChannels) {
 	}
 }
 
-func (c *WSClient) startListeners(ctx context.Context, evCh chan<- *model.WebSocketEvent) wsDisonnected {
+func (c *WSClient) startListeners(ctx context.Context, listenersNumber int, channels WSListenChannels) wsDisonnected {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	resCh := make(chan wsDisonnected, wsListenersCount)
+	resCh := make(chan wsDisonnected, listenersNumber)
 
-	for i := 0; i < wsListenersCount; i++ {
+	for i := 0; i < listenersNumber; i++ {
 		go func() {
-			r := c.startListener(ctx, evCh)
+			r := c.startListener(ctx, channels)
 			resCh <- r
 		}()
 	}
@@ -116,14 +116,19 @@ func (c *WSClient) startListeners(ctx context.Context, evCh chan<- *model.WebSoc
 	return <-resCh
 }
 
-func (c *WSClient) startListener(ctx context.Context, evCh chan<- *model.WebSocketEvent) wsDisonnected {
+func (c *WSClient) startListener(ctx context.Context, channels WSListenChannels) wsDisonnected {
 	for {
 		select {
 		case e, ok := <-c.ws.EventChannel:
 			if !ok {
 				return true
 			}
-			evCh <- e
+			evt, err := events.NewEvent(e)
+			if err != nil {
+				channels.Errors <- err
+			} else {
+				channels.Events <- evt
+			}
 		case _, ok := <-c.ws.ResponseChannel:
 			if !ok {
 				return true

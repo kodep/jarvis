@@ -5,7 +5,6 @@ import (
 
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"github.com/kodep/jarvis/internal/mattermost/events"
-	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
@@ -33,17 +32,22 @@ func ProvideListener(
 }
 
 func (l *Listener) Listen(ctx context.Context) {
+	const (
+		channelSize     = 10
+		listenersNumber = 10
+	)
+
 	chs := mattermost.WSListenChannels{
-		Events: make(chan *model.WebSocketEvent, 1),
-		Errors: make(chan error, 1),
+		Events: make(chan events.Event, channelSize),
+		Errors: make(chan error, channelSize),
 	}
 
 	defer close(chs.Events)
 	defer close(chs.Errors)
 
-	go l.wsClient.Start(ctx, chs)
+	go l.wsClient.Start(ctx, listenersNumber, chs)
 
-	handleEvent := func(e *model.WebSocketEvent) {
+	handleEvent := func(e events.Event) {
 		lo.TryCatchWithErrorValue(func() error {
 			l.handleEvent(ctx, e)
 			return nil
@@ -52,31 +56,28 @@ func (l *Listener) Listen(ctx context.Context) {
 		})
 	}
 
+	handleError := func(err error) {
+		if eventErr, ok := lo.ErrorsAs[*events.UnknownEventError](err); ok {
+			l.logger.Debug("Unknown event", zap.String("EventType", eventErr.WsEvent.EventType()))
+		} else {
+			l.logger.Error("Mattermost WebSocket failed:", zap.Error(err))
+		}
+	}
+
 	for {
 		select {
 		case e := <-chs.Events:
 			go handleEvent(e)
 		case err := <-chs.Errors:
-			l.logger.Error("Mattermost WebSocket failed:", zap.Error(err))
+			handleError(err)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (l *Listener) handleEvent(ctx context.Context, r *model.WebSocketEvent) {
-	e, err := events.NewEvent(r)
-	if err != nil {
-		if _, ok := lo.ErrorsAs[*events.UnknownEventError](err); ok {
-			l.logger.Debug("Unknown event", zap.String("EventType", r.EventType()))
-		} else {
-			l.logger.Warn("Failed to parse event", zap.String("EventType", r.EventType()), zap.Error(err))
-		}
-
-		return
-	}
-
-	if err = l.handler(ctx, e); err != nil {
-		l.logger.Warn("Failed to process event", zap.String("EventType", r.EventType()), zap.Error(err))
+func (l *Listener) handleEvent(ctx context.Context, e events.Event) {
+	if err := l.handler(ctx, e); err != nil {
+		l.logger.Warn("Failed to process event", zap.String("EventType", e.RawEventType()), zap.Error(err))
 	}
 }
