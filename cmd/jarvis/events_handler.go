@@ -1,13 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 
 	"github.com/google/wire"
-	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"github.com/kodep/jarvis/internal/mattermost/events"
+	"github.com/kodep/jarvis/internal/mattermost/factories"
 	"github.com/kodep/jarvis/internal/mattermost/filters"
 	"github.com/kodep/jarvis/internal/mattermost/guards"
 	"github.com/kodep/jarvis/internal/mattermost/handlers"
@@ -16,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type EventsHandler func(ctx context.Context, e events.Event) error
+type EventsHandler func(ctx handlers.Context, e events.Event) error
 
 type (
 	logsHandler handlers.MiddlwareFn[events.Event]
@@ -29,7 +28,11 @@ var EventsHandlersSet = wire.NewSet(
 	wire.Struct(new(boobsAndButtsHandler), "*"),
 )
 
-func provideEventsHandler(logsHandler logsHandler, conf Config, bb boobsAndButtsHandler) EventsHandler {
+func provideEventsHandler(
+	conf Config,
+	logsHandler logsHandler,
+	bb boobsAndButtsHandler,
+) EventsHandler {
 	boobsRegexp := regexp.MustCompile("(?i)show boobs")
 	buttsRegexp := regexp.MustCompile("(?i)show butts")
 
@@ -44,14 +47,14 @@ func provideEventsHandler(logsHandler logsHandler, conf Config, bb boobsAndButts
 	))
 }
 
-func provideLogsHandler(logger *zap.Logger) logsHandler {
-	return func(ctx context.Context, e events.Event, next handlers.NextFn[events.Event]) error {
-		logger.Debug("Received event", zap.String("EventType", e.RawEventType()))
+func provideLogsHandler() logsHandler {
+	return func(ctx handlers.Context, e events.Event, next handlers.NextFn[events.Event]) error {
+		ctx.Logger().Debug("Received event", zap.String("EventType", e.RawEventType()))
 
-		err := next(handlers.WithLogger(ctx, logger), e)
+		err := next(ctx, e)
 
 		if !e.Acknowledged() && err == nil {
-			logger.Debug("Skipped event", zap.String("EventType", e.RawEventType()))
+			ctx.Logger().Debug("Skipped event", zap.String("EventType", e.RawEventType()))
 		}
 
 		return err
@@ -59,21 +62,22 @@ func provideLogsHandler(logger *zap.Logger) logsHandler {
 }
 
 type boobsAndButtsHandler struct {
-	Client *mattermost.Client
-	Boobs  oboobs.BoobsClient
-	Butts  oboobs.ButtsClient
+	Boobs oboobs.BoobsClient
+	Butts oboobs.ButtsClient
 }
 
-func (bh boobsAndButtsHandler) handleBoobs(
-	ctx context.Context,
+func (bh boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
+	ctx handlers.Context,
 	e events.PostEvent,
 	next handlers.NextFn[events.PostEvent],
 ) error {
-	logger := handlers.GetLogger(ctx).With(zap.String("handler", "boobs"))
+	logger := ctx.Logger().With(zap.String("handler", "boobs"))
 
 	logger.Debug("Asked me to show boobs")
 
-	boob, err := bh.Boobs.Random(ctx)
+	factories.SendTyping(ctx.WSClient(), e.ChannelID())
+
+	boob, err := bh.Boobs.Random(ctx.Context())
 	if err != nil {
 		return fmt.Errorf("failed to get boobs: %w", err)
 	}
@@ -82,7 +86,7 @@ func (bh boobsAndButtsHandler) handleBoobs(
 
 	post := &model.Post{ChannelId: e.ChannelID(), Message: boob.URL}
 
-	if _, err = bh.Client.SendPost(post); err != nil {
+	if _, err = ctx.Client().SendPost(post); err != nil {
 		return fmt.Errorf("failed to answer: %w", err)
 	}
 
@@ -90,16 +94,18 @@ func (bh boobsAndButtsHandler) handleBoobs(
 	return nil
 }
 
-func (bh boobsAndButtsHandler) handleButts(
-	ctx context.Context,
+func (bh boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
+	ctx handlers.Context,
 	e events.PostEvent,
 	next handlers.NextFn[events.PostEvent],
 ) error {
-	logger := handlers.GetLogger(ctx).With(zap.String("handler", "butts"))
+	logger := ctx.Logger().With(zap.String("handler", "butts"))
 
 	logger.Debug("Asked me to show butts")
 
-	butt, err := bh.Butts.Random(ctx)
+	factories.SendTyping(ctx.WSClient(), e.ChannelID())
+
+	butt, err := bh.Butts.Random(ctx.Context())
 	if err != nil {
 		return fmt.Errorf("failed to get butts: %w", err)
 	}
@@ -108,7 +114,7 @@ func (bh boobsAndButtsHandler) handleButts(
 
 	post := &model.Post{ChannelId: e.ChannelID(), Message: butt.URL}
 
-	if _, err = bh.Client.SendPost(post); err != nil {
+	if _, err = ctx.Client().SendPost(post); err != nil {
 		return fmt.Errorf("failed to answer: %w", err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/kodep/jarvis/internal/mattermost/events"
@@ -30,6 +31,7 @@ type WSClient struct {
 
 	ws     *model.WebSocketClient
 	logger *zap.Logger
+	mu     sync.Mutex
 }
 
 type WSListenChannels struct {
@@ -66,12 +68,10 @@ func GetWSURL(apiURL string) (string, error) {
 }
 
 func (c *WSClient) Start(ctx context.Context, listenersNumber int, channels WSListenChannels) {
-	defer func() {
-		if c.ws != nil {
-			c.ws.Close()
-			c.ws = nil
-		}
-	}()
+	defer c.mu.Unlock()
+	defer c.closeClient()
+
+	c.mu.Lock()
 
 	for {
 		c.logger.Info("Connect to Mattermost via Websocket")
@@ -94,6 +94,18 @@ func (c *WSClient) Start(ctx context.Context, listenersNumber int, channels WSLi
 		case <-time.After(wsReconnectTimeout):
 		case <-ctx.Done():
 			return
+		}
+	}
+}
+
+func (c *WSClient) SendMessage(action string, data map[string]interface{}) {
+	if ws := c.ws; ws != nil {
+		logger := c.logger.With(zap.String("action", action), zap.Any("data", data))
+
+		logger.Debug("Send message")
+
+		if err := ws.SendBinaryMessage(action, data); err != nil {
+			logger.Error("Failed to send message", zap.Error(err))
 		}
 	}
 }
@@ -170,13 +182,9 @@ func (c *WSClient) reconnectUntilReady(ctx context.Context, errCh chan<- error) 
 func (c *WSClient) connect() error {
 	var err error
 
-	if c.ws != nil {
-		c.ws.Close()
-		c.ws = nil
-	}
+	c.closeClient()
 
-	c.ws, err = model.NewWebSocketClient(c.url, c.token)
-	if err != nil {
+	if c.ws, err = model.NewWebSocketClient(c.url, c.token); err != nil {
 		return fmt.Errorf("failed to create websocket client: %w", err)
 	}
 
@@ -185,4 +193,11 @@ func (c *WSClient) connect() error {
 	}
 
 	return nil
+}
+
+func (c *WSClient) closeClient() {
+	if c.ws != nil {
+		c.ws.Close()
+		c.ws = nil
+	}
 }
