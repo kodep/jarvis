@@ -1,19 +1,17 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/kodep/jarvis/internal/mattermost/events"
 	"github.com/kodep/jarvis/internal/mattermost/filters"
 )
 
-type NextFn[T events.Event] func(ctx context.Context, e T) error
-type MiddlwareFn[T events.Event] func(ctx context.Context, e T, next NextFn[T]) error
-type HandlerFn[T events.Event] func(ctx context.Context, e T) error
+type NextFn[T events.Event] func(ctx Context, e T) error
+type MiddlwareFn[T events.Event] func(ctx Context, e T, next NextFn[T]) error
+type HandlerFn[T events.Event] func(ctx Context, e T) error
 
 func Filter[T events.Event](fn filters.FilterFn[T], h MiddlwareFn[T]) MiddlwareFn[T] {
-	return func(ctx context.Context, e T, next NextFn[T]) error {
-		ok, err := fn(ctx, e)
+	return func(ctx Context, e T, next NextFn[T]) error {
+		ok, err := fn(ctx.Context(), e)
 		if err != nil {
 			return err
 		}
@@ -27,22 +25,22 @@ func Filter[T events.Event](fn filters.FilterFn[T], h MiddlwareFn[T]) MiddlwareF
 }
 
 func Handle[T events.Event](h HandlerFn[T]) MiddlwareFn[T] {
-	return func(ctx context.Context, e T, next NextFn[T]) error {
+	return func(ctx Context, e T, next NextFn[T]) error {
 		e.Ack()
 		return h(ctx, e)
 	}
 }
 
 func Pipe[T events.Event](handlers ...MiddlwareFn[T]) MiddlwareFn[T] {
-	return func(ctx context.Context, e T, next NextFn[T]) error {
+	return func(ctx Context, e T, next NextFn[T]) error {
 		return runMiddlewares(ctx, e, next, handlers)
 	}
 }
 
-func runMiddlewares[T events.Event](ctx context.Context, e T, next NextFn[T], handlers []MiddlwareFn[T]) error {
+func runMiddlewares[T events.Event](ctx Context, e T, next NextFn[T], handlers []MiddlwareFn[T]) error {
 	select {
-	case <-ctx.Done():
-		return ctx.Err() //nolint:wrapcheck // don't wrap context.Canceled errors
+	case <-ctx.Context().Done():
+		return ctx.Context().Err() //nolint:wrapcheck // don't wrap context.Canceled errors
 	default:
 	}
 
@@ -52,14 +50,14 @@ func runMiddlewares[T events.Event](ctx context.Context, e T, next NextFn[T], ha
 
 	handler, rest := handlers[0], handlers[1:]
 
-	return handler(ctx, e, func(ctx context.Context, e T) error {
+	return handler(ctx, e, func(ctx Context, e T) error {
 		return runMiddlewares(ctx, e, next, rest)
 	})
 }
 
-func TerminatePipe(h MiddlwareFn[events.Event]) func(ctx context.Context, e events.Event) error {
-	return func(ctx context.Context, e events.Event) error {
-		return h(ctx, e, func(context.Context, events.Event) error {
+func TerminatePipe(h MiddlwareFn[events.Event]) func(ctx Context, e events.Event) error {
+	return func(ctx Context, e events.Event) error {
+		return h(ctx, e, func(Context, events.Event) error {
 			return nil
 		})
 	}

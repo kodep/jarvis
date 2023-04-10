@@ -5,6 +5,7 @@ import (
 
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"github.com/kodep/jarvis/internal/mattermost/events"
+	"github.com/kodep/jarvis/internal/mattermost/handlers"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
@@ -77,7 +78,9 @@ func (l *Listener) Listen(ctx context.Context) {
 }
 
 func (l *Listener) handleEvent(ctx context.Context, e events.Event) {
-	if err := l.handler(ctx, e); err != nil {
+	hCtx := handlers.NewContext(ctx, l.logger, l.client, l.wsClient)
+
+	if err := l.handler(hCtx, e); err != nil {
 		l.logger.Warn("Failed to process event", zap.String("EventType", e.RawEventType()), zap.Error(err))
 	}
 }
