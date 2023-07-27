@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/kodep/jarvis/internal/mattermost/events"
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/samber/lo"
 )
 

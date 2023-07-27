@@ -1,9 +1,10 @@
 package client
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
 )
 
 type Client struct {
@@ -34,19 +35,19 @@ func New(options Options) *Client {
 	}
 }
 
-func (c *Client) Connect() error {
-	user, _, err := c.client.GetMe("")
+func (c *Client) Connect(ctx context.Context) error {
+	if _, _, err := c.client.GetPing(ctx); err != nil {
+		return fmt.Errorf("faield to ping server %w", err)
+	}
+
+	user, _, err := c.client.GetMe(ctx, "")
 	if err != nil {
 		return fmt.Errorf("failed to get bot account: %w", err)
 	}
 
-	team, _, err := c.client.GetTeamByName(c.teamName, "")
+	team, _, err := c.client.GetTeamByName(ctx, c.teamName, "")
 	if err != nil {
 		return fmt.Errorf("failed to get bot team: %w", err)
-	}
-
-	if _, _, err = c.client.GetOldClientLicense(""); err != nil {
-		return fmt.Errorf("faield to get config %w", err)
 	}
 
 	c.user = user
@@ -55,8 +56,8 @@ func (c *Client) Connect() error {
 	return nil
 }
 
-func (c *Client) SendPost(post *model.Post) (*model.Post, error) {
-	p, _, err := c.client.CreatePost(post)
+func (c *Client) SendPost(ctx context.Context, post *model.Post) (*model.Post, error) {
+	p, _, err := c.client.CreatePost(ctx, post)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create post: %w", err)

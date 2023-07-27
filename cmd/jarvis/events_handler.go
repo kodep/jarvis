@@ -11,7 +11,7 @@ import (
 	"github.com/kodep/jarvis/internal/mattermost/guards"
 	"github.com/kodep/jarvis/internal/mattermost/handlers"
 	"github.com/kodep/jarvis/internal/oboobs"
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
 	"go.uber.org/zap"
 )
 
@@ -86,7 +86,7 @@ func (bh boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
 
 	post := &model.Post{ChannelId: e.ChannelID(), Message: boob.URL}
 
-	if _, err = ctx.Client().SendPost(post); err != nil {
+	if _, err = ctx.Client().SendPost(ctx.Context(), post); err != nil {
 		return fmt.Errorf("failed to answer: %w", err)
 	}
 
@@ -114,7 +114,7 @@ func (bh boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
 
 	post := &model.Post{ChannelId: e.ChannelID(), Message: butt.URL}
 
-	if _, err = ctx.Client().SendPost(post); err != nil {
+	if _, err = ctx.Client().SendPost(ctx.Context(), post); err != nil {
 		return fmt.Errorf("failed to answer: %w", err)
 	}
 

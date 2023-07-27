@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/kodep/jarvis/internal/mattermost/events"
-	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost/server/public/model"
 	"go.uber.org/zap"
 )
 
