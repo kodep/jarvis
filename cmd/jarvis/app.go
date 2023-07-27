@@ -41,7 +41,7 @@ func (a App) connectUntilReady(ctx context.Context) {
 	var err error
 
 	for {
-		if err = a.client.Connect(); err == nil {
+		if err = a.client.Connect(ctx); err == nil {
 			return
 		}
 
