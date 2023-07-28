@@ -36,8 +36,8 @@ func provideEventsHandler(
 	bb *boobsAndButtsHandler,
 	c *catsHandler,
 ) EventsHandler {
-	boobsRegexp := regexp.MustCompile("(?i)show boobs")
-	buttsRegexp := regexp.MustCompile("(?i)show butts")
+	boobsRegexp := regexp.MustCompile("(?i)(show boobs)|(скинь сиськи)")
+	buttsRegexp := regexp.MustCompile("(?i)(show butts)|(скинь попки)")
 	catsRegexp := regexp.MustCompile("(?i)(show cat(s)?)|(покажи кот(ов)?)|(покажи котиков)|(скинь кота)")
 
 	boobsAndButts := handlers.Filter(filters.ByChannelID(conf.BoobsChannelID), handlers.Pipe(
