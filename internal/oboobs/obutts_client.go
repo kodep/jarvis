@@ -13,14 +13,14 @@ type ButtsEntity struct {
 	URL string
 }
 
-func NewButtsClient() ButtsClient {
+func NewButtsClient() *ButtsClient {
 	const (
 		apiURL = "http://api.obutts.ru"
 		cdnURL = "https://media.obutts.ru"
 		prefix = "butts"
 	)
 
-	return ButtsClient{
+	return &ButtsClient{
 		baseClient: baseClient{
 			apiURL: apiURL,
 			cdnURL: cdnURL,

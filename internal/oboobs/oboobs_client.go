@@ -13,14 +13,14 @@ type BoobsEntity struct {
 	URL string
 }
 
-func NewBoobsClient() BoobsClient {
+func NewBoobsClient() *BoobsClient {
 	const (
 		apiURL = "http://api.oboobs.ru"
 		cdnURL = "https://media.oboobs.ru"
 		prefix = "boobs"
 	)
 
-	return BoobsClient{
+	return &BoobsClient{
 		baseClient: baseClient{
 			apiURL: apiURL,
 			cdnURL: cdnURL,
