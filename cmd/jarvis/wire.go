@@ -6,6 +6,7 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/kodep/jarvis/internal/oboobs"
+	"github.com/kodep/jarvis/internal/thecatapi"
 )
 
 func InitializeApp() (App, func(), error) {
@@ -20,6 +21,7 @@ func InitializeApp() (App, func(), error) {
 			ProvideMattermostWSClient,
 			oboobs.NewBoobsClient,
 			oboobs.NewButtsClient,
+			thecatapi.NewClient,
 		),
 	)
 }

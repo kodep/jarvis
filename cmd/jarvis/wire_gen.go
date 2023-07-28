@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/kodep/jarvis/internal/oboobs"
+	"github.com/kodep/jarvis/internal/thecatapi"
 )
 
 // Injectors from wire.go:
@@ -30,11 +31,15 @@ func InitializeApp() (App, func(), error) {
 	mainLogsHandler := provideLogsHandler()
 	boobsClient := oboobs.NewBoobsClient()
 	buttsClient := oboobs.NewButtsClient()
-	mainBoobsAndButtsHandler := boobsAndButtsHandler{
+	mainBoobsAndButtsHandler := &boobsAndButtsHandler{
 		Boobs: boobsClient,
 		Butts: buttsClient,
 	}
-	eventsHandler := provideEventsHandler(config, mainLogsHandler, mainBoobsAndButtsHandler)
+	thecatapiClient := thecatapi.NewClient()
+	mainCatsHandler := &catsHandler{
+		Cats: thecatapiClient,
+	}
+	eventsHandler := provideEventsHandler(config, mainLogsHandler, mainBoobsAndButtsHandler, mainCatsHandler)
 	listener := ProvideListener(logger, client, wsClient, eventsHandler)
 	app := ProvideApp(logger, client, listener)
 	return app, func() {

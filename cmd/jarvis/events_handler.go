@@ -11,6 +11,7 @@ import (
 	"github.com/kodep/jarvis/internal/mattermost/guards"
 	"github.com/kodep/jarvis/internal/mattermost/handlers"
 	"github.com/kodep/jarvis/internal/oboobs"
+	"github.com/kodep/jarvis/internal/thecatapi"
 	"github.com/mattermost/mattermost/server/public/model"
 	"go.uber.org/zap"
 )
@@ -26,24 +27,33 @@ var EventsHandlersSet = wire.NewSet(
 	provideEventsHandler,
 	provideLogsHandler,
 	wire.Struct(new(boobsAndButtsHandler), "*"),
+	wire.Struct(new(catsHandler), "*"),
 )
 
 func provideEventsHandler(
 	conf Config,
 	logsHandler logsHandler,
-	bb boobsAndButtsHandler,
+	bb *boobsAndButtsHandler,
+	c *catsHandler,
 ) EventsHandler {
 	boobsRegexp := regexp.MustCompile("(?i)show boobs")
 	buttsRegexp := regexp.MustCompile("(?i)show butts")
+	catsRegexp := regexp.MustCompile("(?i)(show cat(s)?)|(покажи кот(ов)?)|(покажи котиков)|(скинь кота)")
 
 	boobsAndButts := handlers.Filter(filters.ByChannelID(conf.BoobsChannelID), handlers.Pipe(
 		handlers.Filter(filters.ByRegexp(boobsRegexp), bb.handleBoobs),
 		handlers.Filter(filters.ByRegexp(buttsRegexp), bb.handleButts),
 	))
 
+	cats := handlers.Filter(filters.Conjunction(
+		filters.MentionedMe(),
+		filters.ByRegexp(catsRegexp),
+	), c.handleCats)
+
 	return handlers.TerminatePipe(handlers.Pipe(
 		(handlers.MiddlwareFn[events.Event])(logsHandler),
 		guards.EventGuard(boobsAndButts),
+		guards.EventGuard(cats),
 	))
 }
 
@@ -62,11 +72,11 @@ func provideLogsHandler() logsHandler {
 }
 
 type boobsAndButtsHandler struct {
-	Boobs oboobs.BoobsClient
-	Butts oboobs.ButtsClient
+	Boobs *oboobs.BoobsClient
+	Butts *oboobs.ButtsClient
 }
 
-func (bh boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
+func (bh *boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
 	ctx handlers.Context,
 	e events.PostEvent,
 	next handlers.NextFn[events.PostEvent],
@@ -94,7 +104,7 @@ func (bh boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
 	return nil
 }
 
-func (bh boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
+func (bh *boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
 	ctx handlers.Context,
 	e events.PostEvent,
 	next handlers.NextFn[events.PostEvent],
@@ -113,6 +123,38 @@ func (bh boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
 	logger.Debug("Send butts", zap.String("butts", butt.URL))
 
 	post := &model.Post{ChannelId: e.ChannelID(), Message: butt.URL}
+
+	if _, err = ctx.Client().SendPost(ctx.Context(), post); err != nil {
+		return fmt.Errorf("failed to answer: %w", err)
+	}
+
+	e.Ack()
+	return nil
+}
+
+type catsHandler struct {
+	Cats *thecatapi.Client
+}
+
+func (ch *catsHandler) handleCats( //nolint:dupl // 😕
+	ctx handlers.Context,
+	e events.PostEvent,
+	next handlers.NextFn[events.PostEvent],
+) error {
+	logger := ctx.Logger().With(zap.String("handler", "cats"))
+
+	logger.Debug("Asked me to send a cat")
+
+	factories.SendTyping(ctx.WSClient(), e.ChannelID())
+
+	cat, err := ch.Cats.GetCat(ctx.Context())
+	if err != nil {
+		return fmt.Errorf("failed to get a cat: %w", err)
+	}
+
+	logger.Debug("Send a cat", zap.String("cat", cat.URL))
+
+	post := &model.Post{ChannelId: e.ChannelID(), Message: cat.URL}
 
 	if _, err = ctx.Client().SendPost(ctx.Context(), post); err != nil {
 		return fmt.Errorf("failed to answer: %w", err)

@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"github.com/kodep/jarvis/internal/mattermost/events"
-	"github.com/kodep/jarvis/internal/mattermost/filters"
 )
 
 type NextFn[T events.Event] func(ctx Context, e T) error
 type MiddlwareFn[T events.Event] func(ctx Context, e T, next NextFn[T]) error
 type HandlerFn[T events.Event] func(ctx Context, e T) error
+type FilterFn[T events.Event] func(ctx Context, e T) (bool, error)
 
-func Filter[T events.Event](fn filters.FilterFn[T], h MiddlwareFn[T]) MiddlwareFn[T] {
+func Filter[T events.Event](fn FilterFn[T], h MiddlwareFn[T]) MiddlwareFn[T] {
 	return func(ctx Context, e T, next NextFn[T]) error {
-		ok, err := fn(ctx.Context(), e)
+		ok, err := fn(ctx, e)
 		if err != nil {
 			return err
 		}
