@@ -46,7 +46,7 @@ func (c baseClient) getRandom(ctx context.Context) (baseEntity, error) {
 	}
 
 	if len(r) == 0 {
-		return baseEntity{}, fmt.Errorf("OpenBoobs returned 0 entities: %w", err)
+		return baseEntity{}, fmt.Errorf("OpenBoobs returned 0 entities")
 	}
 
 	return baseEntity{

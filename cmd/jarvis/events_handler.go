@@ -36,8 +36,8 @@ func provideEventsHandler(
 	bb *boobsAndButtsHandler,
 	c *catsHandler,
 ) EventsHandler {
-	boobsRegexp := regexp.MustCompile("(?i)(show boobs)|(скинь сиськи)")
-	buttsRegexp := regexp.MustCompile("(?i)(show butts)|(скинь попки)")
+	boobsRegexp := regexp.MustCompile("(?i)(show boobs)|(покажи сиськи)|(скинь сиськи)")
+	buttsRegexp := regexp.MustCompile("(?i)(show butts)|(покажи попки)|(скинь попки)")
 	catsRegexp := regexp.MustCompile("(?i)(show cat(s)?)|(покажи кот(ов)?)|(покажи котиков)|(скинь кота)")
 
 	boobsAndButts := handlers.Filter(filters.ByChannelID(conf.BoobsChannelID), handlers.Pipe(
@@ -79,7 +79,7 @@ type boobsAndButtsHandler struct {
 func (bh *boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
 	ctx handlers.Context,
 	e events.PostEvent,
-	next handlers.NextFn[events.PostEvent],
+	_ handlers.NextFn[events.PostEvent],
 ) error {
 	logger := ctx.Logger().With(zap.String("handler", "boobs"))
 
@@ -107,7 +107,7 @@ func (bh *boobsAndButtsHandler) handleBoobs( //nolint:dupl // 😕
 func (bh *boobsAndButtsHandler) handleButts( //nolint:dupl // 😕
 	ctx handlers.Context,
 	e events.PostEvent,
-	next handlers.NextFn[events.PostEvent],
+	_ handlers.NextFn[events.PostEvent],
 ) error {
 	logger := ctx.Logger().With(zap.String("handler", "butts"))
 
@@ -139,7 +139,7 @@ type catsHandler struct {
 func (ch *catsHandler) handleCats( //nolint:dupl // 😕
 	ctx handlers.Context,
 	e events.PostEvent,
-	next handlers.NextFn[events.PostEvent],
+	_ handlers.NextFn[events.PostEvent],
 ) error {
 	logger := ctx.Logger().With(zap.String("handler", "cats"))
 
