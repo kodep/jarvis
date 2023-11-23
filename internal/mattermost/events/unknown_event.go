@@ -22,7 +22,7 @@ type unknownEventDecoder struct{}
 
 var _ eventDecoder = (*unknownEventDecoder)(nil)
 
-func (d unknownEventDecoder) Accept(e *model.WebSocketEvent) bool {
+func (d unknownEventDecoder) Accept(_ *model.WebSocketEvent) bool {
 	// unknown decoder accepts all events
 	return true
 }
