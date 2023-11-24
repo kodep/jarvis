@@ -4,7 +4,7 @@
 
 ## How to start?
 
-1. Setup golang v1.20
+1. Setup golang v1.21
 2. Run Mattermost local instance. Configure the bot and get credentials.
 3. Configure `.env`
 4. Run start the bot: `go run ./cmd/jarvis`
