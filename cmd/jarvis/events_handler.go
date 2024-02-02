@@ -59,12 +59,14 @@ func provideEventsHandler(
 
 func provideLogsHandler() logsHandler {
 	return func(ctx handlers.Context, e events.Event, next handlers.NextFn[events.Event]) error {
-		ctx.Logger().Debug("Received event", zap.String("EventType", e.RawEventType()))
+		logger := ctx.Logger().With(zap.String("EventType", string(e.RawEventType())), zap.Any("Data", e.RawData()))
+
+		logger.Debug("Received event")
 
 		err := next(ctx, e)
 
 		if !e.Acknowledged() && err == nil {
-			ctx.Logger().Debug("Skipped event", zap.String("EventType", e.RawEventType()))
+			logger.Debug("Skipped event")
 		}
 
 		return err

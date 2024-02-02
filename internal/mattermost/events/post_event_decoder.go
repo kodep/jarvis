@@ -12,7 +12,7 @@ type postEventDecoder struct{}
 var _ eventDecoder = (*postEventDecoder)(nil)
 
 func (d postEventDecoder) Accept(e *model.WebSocketEvent) bool {
-	return e.EventType() == string(PostedEventType)
+	return e.EventType() == model.WebsocketEventPosted
 }
 
 func (d postEventDecoder) Decode(e *model.WebSocketEvent) (Event, error) {
