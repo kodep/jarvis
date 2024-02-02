@@ -36,7 +36,7 @@ func (e *BaseEvent) EventType() EventType {
 	return e.eventType
 }
 
-func (e *BaseEvent) RawEventType() string {
+func (e *BaseEvent) RawEventType() model.WebsocketEventType {
 	return e.wsEvent.EventType()
 }
 

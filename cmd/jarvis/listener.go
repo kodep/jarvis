@@ -59,7 +59,7 @@ func (l *Listener) Listen(ctx context.Context) {
 
 	handleError := func(err error) {
 		if eventErr, ok := lo.ErrorsAs[*events.UnknownEventError](err); ok {
-			l.logger.Debug("Unknown event", zap.String("EventType", eventErr.WsEvent.EventType()))
+			l.logger.Debug("Unknown event", zap.String("EventType", string(eventErr.WsEvent.EventType())))
 		} else {
 			l.logger.Error("Mattermost WebSocket failed:", zap.Error(err))
 		}
@@ -81,6 +81,6 @@ func (l *Listener) handleEvent(ctx context.Context, e events.Event) {
 	hCtx := handlers.NewContext(ctx, l.logger, l.client, l.wsClient)
 
 	if err := l.handler(hCtx, e); err != nil {
-		l.logger.Warn("Failed to process event", zap.String("EventType", e.RawEventType()), zap.Error(err))
+		l.logger.Warn("Failed to process event", zap.String("EventType", string(e.RawEventType())), zap.Error(err))
 	}
 }

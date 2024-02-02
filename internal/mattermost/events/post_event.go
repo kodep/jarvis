@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	PostedEventType EventType = model.WebsocketEventPosted
+	PostedEventType EventType = EventType(model.WebsocketEventPosted)
 )
 
 type PostEvent interface {

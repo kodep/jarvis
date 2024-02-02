@@ -11,7 +11,7 @@ type Event interface {
 	Ack()
 	NoAck()
 	EventType() EventType
-	RawEventType() string
+	RawEventType() model.WebsocketEventType
 	RawData() map[string]interface{}
 }
 
