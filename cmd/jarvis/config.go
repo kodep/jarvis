@@ -8,21 +8,25 @@ import (
 )
 
 type Config struct {
-	MattermostURL  string
-	BotToken       string
-	BotTeamName    string
-	BoobsChannelID string
-	Mode           ModeType
+	MattermostURL     string
+	BotToken          string
+	BotTeamName       string
+	BoobsChannelID    string
+	Mode              ModeType
+	BirthdayChannelID string
+	ApiURL            string
 }
 
 type Env = string
 type ModeType string
 
 const (
-	MattermostURL  Env = "MATTERMOST_URL"
-	BotToken       Env = "BOT_TOKEN"
-	BotTeamName    Env = "BOT_TEAM_NAME"
-	BoobsChannelID Env = "BOOBS_CHANNEL_ID"
+	MattermostURL     Env = "MATTERMOST_URL"
+	BotToken          Env = "BOT_TOKEN"
+	BotTeamName       Env = "BOT_TEAM_NAME"
+	BoobsChannelID    Env = "BOOBS_CHANNEL_ID"
+	BirthdayChannelID Env = "BIRTHDAY_CHANNEL_ID"
+	ApiURL            Env = "API_URL"
 )
 
 const (
@@ -64,6 +68,18 @@ func ProvideConfig() (Config, error) {
 		c.BoobsChannelID = v
 	} else {
 		return c, fmt.Errorf("%s environment variable is missing", BoobsChannelID)
+	}
+
+	if v := os.Getenv(ApiURL); v != "" {
+		c.ApiURL = v
+	} else {
+		return c, fmt.Errorf("%s environment variable is missing", ApiURL)
+	}
+
+	if v := os.Getenv(BirthdayChannelID); v != "" {
+		c.BirthdayChannelID = v
+	} else {
+		return c, fmt.Errorf("%s environment variable is missing", BirthdayChannelID)
 	}
 
 	return c, nil

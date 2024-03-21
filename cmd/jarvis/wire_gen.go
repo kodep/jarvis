@@ -41,7 +41,9 @@ func InitializeApp() (App, func(), error) {
 	}
 	eventsHandler := provideEventsHandler(config, mainLogsHandler, mainBoobsAndButtsHandler, mainCatsHandler)
 	listener := ProvideListener(logger, client, wsClient, eventsHandler)
-	app := ProvideApp(logger, client, listener)
+	apiClient := ProvideApiClient(logger, config)
+	apiListener := ProvideApiListener(apiClient, client, logger, config)
+	app := ProvideApp(logger, client, listener, apiListener)
 	return app, func() {
 		cleanup()
 	}, nil
