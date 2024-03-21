@@ -16,10 +16,10 @@ type App struct {
 	logger      *zap.Logger
 	client      *mattermost.Client
 	listener    Listener
-	apiListener ApiListener
+	apiListener APIListener
 }
 
-func ProvideApp(logger *zap.Logger, client *mattermost.Client, listener Listener, apiListener ApiListener) App {
+func ProvideApp(logger *zap.Logger, client *mattermost.Client, listener Listener, apiListener APIListener) App {
 	return App{logger, client, listener, apiListener}
 }
 
@@ -33,7 +33,7 @@ func (a App) Run(ctx context.Context) {
 	)
 
 	a.logger.Info("Listen for API events")
-	a.apiListener.ListenApi(ctx)
+	a.apiListener.ListenAPI(ctx)
 
 	a.logger.Info("Listen for events")
 	a.listener.Listen(ctx)

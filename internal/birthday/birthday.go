@@ -3,6 +3,7 @@ package birthday
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,17 +18,17 @@ type UserData struct {
 	NickName    string `json:"nick_name"`
 }
 
-const OpenAiApiKey = "OPEN_AI_API_KEY"
 const MaxTokens = 500
-const SystemMessage = `Твоя задача оригинально и смешно поздравить человека с днем рождения, с учетом полученных данных о нем`
+const SystemPrompt = `
+Твоя задача оригинально и смешно поздравить человека с днем рождения, с учетом полученных данных о нем`
 
 func NewClient() (*openai.Client, error) {
-	token := os.Getenv(OpenAiApiKey)
-	if token == "" {
-		return nil, fmt.Errorf("%s environment variable is missing", OpenAiApiKey)
+	key := os.Getenv("OPEN_AI_API_KEY")
+	if key == "" {
+		return nil, fmt.Errorf("%s environment variable is missing", "OPEN_AI_API_KEY")
 	}
 
-	client := openai.NewClient(token)
+	client := openai.NewClient(key)
 
 	return client, nil
 }
@@ -37,13 +38,13 @@ func GetMessage(r *http.Request) (string, error) {
 
 	byteBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		return "", fmt.Errorf("cannot read body: %w",err)
+		return "", fmt.Errorf("cannot read body: %w", err)
 	}
 
 	err = json.Unmarshal(byteBody, userData)
 
 	if err != nil {
-		return "", fmt.Errorf("cannot parse body: %w",err)
+		return "", fmt.Errorf("cannot parse body: %w", err)
 	}
 
 	prompt := userData.Name + " " + userData.Description
@@ -76,7 +77,7 @@ func generateCongratulation(userPrompt string) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
-					Content: SystemMessage,
+					Content: SystemPrompt,
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
@@ -92,7 +93,7 @@ func generateCongratulation(userPrompt string) (string, error) {
 	answer := resp.Choices[0].Message.Content
 
 	if answer == "" {
-		return "", fmt.Errorf("empty generation")
+		return "", errors.New("empty generation")
 	}
 
 	return answer, nil

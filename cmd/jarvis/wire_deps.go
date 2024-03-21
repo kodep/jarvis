@@ -50,9 +50,9 @@ func ProvideMattermostWSClient(logger *zap.Logger, conf Config) (*mattermost.WSC
 	}), nil
 }
 
-func ProvideApiClient(logger *zap.Logger, conf Config) *api.ApiClient {
+func ProvideAPIClient(logger *zap.Logger, conf Config) *api.Client {
 	return api.NewClient(api.Options{
-		Host: conf.ApiURL,
+		Host:   conf.APIURL,
 		Logger: logger,
 	})
 }

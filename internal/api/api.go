@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"net/http"
 	"time"
 
@@ -14,35 +13,37 @@ type Options struct {
 	Logger *zap.Logger
 }
 
-type ApiClient struct {
+type Client struct {
 	client *http.Server
 	router *mux.Router
 	logger *zap.Logger
 }
 
-func NewClient(options Options) *ApiClient {
+const WriteTimeout = 15 * time.Second
+const ReadTimeout = 15 * time.Second
+
+func NewClient(options Options) *Client {
 	r := mux.NewRouter()
 
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         options.Host,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: WriteTimeout,
+		ReadTimeout:  ReadTimeout,
 	}
 
-	return &ApiClient{
+	return &Client{
 		client: srv,
 		logger: options.Logger,
 		router: r,
 	}
-
 }
 
-func (c *ApiClient) Router() *mux.Router {
+func (c *Client) Router() *mux.Router {
 	return c.router
 }
 
-func (c *ApiClient) ListenAndServe(ctx context.Context) {
+func (c *Client) ListenAndServe() {
 	err := c.client.ListenAndServe()
 
 	if err != nil {

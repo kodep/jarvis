@@ -12,20 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-type ApiListener struct {
-	apiClient *api.ApiClient
+type APIListener struct {
+	apiClient *api.Client
 	client    *mattermost.Client
 	logger    *zap.Logger
 	conf      Config
 }
 
-func ProvideApiListener(
-	apiClient *api.ApiClient,
+func ProvideAPIListener(
+	apiClient *api.Client,
 	client *mattermost.Client,
 	logger *zap.Logger,
 	conf Config,
-) ApiListener {
-	return ApiListener{
+) APIListener {
+	return APIListener{
 		apiClient: apiClient,
 		client:    client,
 		logger:    logger,
@@ -33,22 +33,24 @@ func ProvideApiListener(
 	}
 }
 
-func (l *ApiListener) ListenApi(ctx context.Context) {
+func (l *APIListener) ListenAPI(ctx context.Context) {
 	l.InitRoutes(ctx)
-	go l.apiClient.ListenAndServe(ctx)
+	go l.apiClient.ListenAndServe()
 }
 
-func (l *ApiListener) InitRoutes(ctx context.Context) {
+func (l *APIListener) InitRoutes(ctx context.Context) {
 	r := l.apiClient.Router()
 
-	r.HandleFunc("/api/v1/congratulate", func(w http.ResponseWriter, r *http.Request) { l.Congratulate(ctx, w, r) }).Methods("POST")
+	r.HandleFunc("/api/v1/congratulate", func(w http.ResponseWriter, r *http.Request) {
+		l.Congratulate(ctx, w, r)
+	}).Methods("POST")
 }
 
-func (l *ApiListener) Congratulate(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (l *APIListener) Congratulate(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	message, err := birthday.GetMessage(r)
 	if err != nil {
 		l.logger.Error("getting birthday message error", zap.Error(err))
-		SendError(w, err, "Getting birthday message error")
+		l.SendError(w, err, "Getting birthday message error")
 		return
 	}
 
@@ -56,15 +58,23 @@ func (l *ApiListener) Congratulate(ctx context.Context, w http.ResponseWriter, r
 
 	if _, err = l.client.SendPost(ctx, post); err != nil {
 		l.logger.Error("sending post to client failed", zap.Error(err))
-		SendError(w, err, "Sending post to client failed")
+		l.SendError(w, err, "Sending post to client failed")
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"data": message})
+	err = json.NewEncoder(w).Encode(map[string]string{"data": message})
+	if err != nil {
+		l.logger.Error("encoding JSON error: %w", zap.Error(err))
+		l.SendError(w, err, "Encoding JSON error")
+	}
 }
 
-func SendError(w http.ResponseWriter, err error, msg string) {
+func (l *APIListener) SendError(w http.ResponseWriter, err error, msg string) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(500)
-	json.NewEncoder(w).Encode(map[string]string{"message": msg, "error": err.Error()})
+	w.WriteHeader(http.StatusInternalServerError)
+	encodingErr := json.NewEncoder(w).Encode(map[string]string{"message": msg, "error": err.Error()})
+
+	if encodingErr != nil {
+		l.logger.Error("encoding JSON error: %w", zap.Error(err))
+	}
 }

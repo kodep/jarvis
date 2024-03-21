@@ -14,7 +14,7 @@ type Config struct {
 	BoobsChannelID    string
 	Mode              ModeType
 	BirthdayChannelID string
-	ApiURL            string
+	APIURL            string
 }
 
 type Env = string
@@ -26,7 +26,7 @@ const (
 	BotTeamName       Env = "BOT_TEAM_NAME"
 	BoobsChannelID    Env = "BOOBS_CHANNEL_ID"
 	BirthdayChannelID Env = "BIRTHDAY_CHANNEL_ID"
-	ApiURL            Env = "API_URL"
+	APIURL            Env = "API_URL"
 )
 
 const (
@@ -70,10 +70,10 @@ func ProvideConfig() (Config, error) {
 		return c, fmt.Errorf("%s environment variable is missing", BoobsChannelID)
 	}
 
-	if v := os.Getenv(ApiURL); v != "" {
-		c.ApiURL = v
+	if v := os.Getenv(APIURL); v != "" {
+		c.APIURL = v
 	} else {
-		return c, fmt.Errorf("%s environment variable is missing", ApiURL)
+		return c, fmt.Errorf("%s environment variable is missing", APIURL)
 	}
 
 	if v := os.Getenv(BirthdayChannelID); v != "" {
