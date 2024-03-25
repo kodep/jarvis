@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/joho/godotenv"
 )
@@ -44,43 +45,34 @@ func ProvideConfig() (Config, error) {
 		mode = ModeProduction
 	}
 
-	c := Config{Mode: mode}
-
-	if v := os.Getenv(MattermostURL); v != "" {
-		c.MattermostURL = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", MattermostURL)
+	c := Config{
+		Mode:              mode,
+		MattermostURL:     os.Getenv(MattermostURL),
+		BotToken:          os.Getenv(BotToken),
+		BotTeamName:       os.Getenv(BotTeamName),
+		BoobsChannelID:    os.Getenv(BoobsChannelID),
+		APIURL:            os.Getenv(APIURL),
+		BirthdayChannelID: os.Getenv(BirthdayChannelID),
 	}
 
-	if v := os.Getenv(BotToken); v != "" {
-		c.BotToken = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BotToken)
-	}
-
-	if v := os.Getenv(BotTeamName); v != "" {
-		c.BotTeamName = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BotTeamName)
-	}
-
-	if v := os.Getenv(BoobsChannelID); v != "" {
-		c.BoobsChannelID = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BoobsChannelID)
-	}
-
-	if v := os.Getenv(APIURL); v != "" {
-		c.APIURL = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", APIURL)
-	}
-
-	if v := os.Getenv(BirthdayChannelID); v != "" {
-		c.BirthdayChannelID = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BirthdayChannelID)
+	if err := validate(c); err != nil {
+		return c, err
 	}
 
 	return c, nil
+}
+
+func validate(c Config) error {
+	v := reflect.ValueOf(c)
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+
+		if field.IsZero() {
+			fieldName := reflect.TypeOf(c).Field(i).Name
+			return fmt.Errorf("%s environment variable is missing", fieldName)
+		}
+	}
+
+	return nil
 }

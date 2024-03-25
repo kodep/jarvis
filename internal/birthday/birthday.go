@@ -20,7 +20,8 @@ type UserData struct {
 
 const MaxTokens = 500
 const SystemPrompt = `
-Твоя задача оригинально и смешно поздравить человека с днем рождения, с учетом полученных данных о нем`
+Твоя задача оригинально и смешно поздравить человека с днем рождения, с учетом полученных данных о нем.
+Представь что ты работаешь с этим человеком уже давно и у тебя сегодня хорошее настроение`
 
 func NewClient() (*openai.Client, error) {
 	key := os.Getenv("OPEN_AI_API_KEY")
@@ -54,11 +55,9 @@ func GetMessage(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	message := gptMessage
+	baseMessage := "@channel" + " Поздравляем с Днем Рождения" + " @" + userData.NickName + " :tada:!\n"
 
-	if userData.NickName != "" {
-		message = "@" + userData.NickName + " " + message
-	}
+	message := baseMessage + gptMessage
 
 	return message, nil
 }
