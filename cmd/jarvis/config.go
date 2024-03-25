@@ -3,26 +3,31 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	MattermostURL  string
-	BotToken       string
-	BotTeamName    string
-	BoobsChannelID string
-	Mode           ModeType
+	MattermostURL     string
+	BotToken          string
+	BotTeamName       string
+	BoobsChannelID    string
+	Mode              ModeType
+	BirthdayChannelID string
+	APIURL            string
 }
 
 type Env = string
 type ModeType string
 
 const (
-	MattermostURL  Env = "MATTERMOST_URL"
-	BotToken       Env = "BOT_TOKEN"
-	BotTeamName    Env = "BOT_TEAM_NAME"
-	BoobsChannelID Env = "BOOBS_CHANNEL_ID"
+	MattermostURL     Env = "MATTERMOST_URL"
+	BotToken          Env = "BOT_TOKEN"
+	BotTeamName       Env = "BOT_TEAM_NAME"
+	BoobsChannelID    Env = "BOOBS_CHANNEL_ID"
+	BirthdayChannelID Env = "BIRTHDAY_CHANNEL_ID"
+	APIURL            Env = "API_URL"
 )
 
 const (
@@ -40,31 +45,34 @@ func ProvideConfig() (Config, error) {
 		mode = ModeProduction
 	}
 
-	c := Config{Mode: mode}
-
-	if v := os.Getenv(MattermostURL); v != "" {
-		c.MattermostURL = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", MattermostURL)
+	c := Config{
+		Mode:              mode,
+		MattermostURL:     os.Getenv(MattermostURL),
+		BotToken:          os.Getenv(BotToken),
+		BotTeamName:       os.Getenv(BotTeamName),
+		BoobsChannelID:    os.Getenv(BoobsChannelID),
+		APIURL:            os.Getenv(APIURL),
+		BirthdayChannelID: os.Getenv(BirthdayChannelID),
 	}
 
-	if v := os.Getenv(BotToken); v != "" {
-		c.BotToken = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BotToken)
-	}
-
-	if v := os.Getenv(BotTeamName); v != "" {
-		c.BotTeamName = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BotTeamName)
-	}
-
-	if v := os.Getenv(BoobsChannelID); v != "" {
-		c.BoobsChannelID = v
-	} else {
-		return c, fmt.Errorf("%s environment variable is missing", BoobsChannelID)
+	if err := validate(c); err != nil {
+		return c, err
 	}
 
 	return c, nil
+}
+
+func validate(c Config) error {
+	v := reflect.ValueOf(c)
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+
+		if field.IsZero() {
+			fieldName := reflect.TypeOf(c).Field(i).Name
+			return fmt.Errorf("%s environment variable is missing", fieldName)
+		}
+	}
+
+	return nil
 }

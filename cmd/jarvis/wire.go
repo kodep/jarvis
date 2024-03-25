@@ -22,6 +22,8 @@ func InitializeApp() (App, func(), error) {
 			oboobs.NewBoobsClient,
 			oboobs.NewButtsClient,
 			thecatapi.NewClient,
+			ProvideApiClient,
+			ProvideApiListener,
 		),
 	)
 }

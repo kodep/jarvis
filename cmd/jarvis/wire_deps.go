@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/kodep/jarvis/internal/api"
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"go.uber.org/zap"
 )
@@ -47,4 +48,11 @@ func ProvideMattermostWSClient(logger *zap.Logger, conf Config) (*mattermost.WSC
 		Token:  conf.BotToken,
 		Logger: logger,
 	}), nil
+}
+
+func ProvideAPIClient(logger *zap.Logger, conf Config) *api.Client {
+	return api.NewClient(api.Options{
+		Host:   conf.APIURL,
+		Logger: logger,
+	})
 }
