@@ -4,30 +4,33 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	MattermostURL     string
-	BotToken          string
-	BotTeamName       string
-	BoobsChannelID    string
-	Mode              ModeType
 	BirthdayChannelID string
-	APIURL            string
+	BoobsChannelID    string
+	BotTeamName       string
+	BotToken          string
+	HTTPPort          int
+	MattermostURL     string
+	Mode              ModeType
+	OpenAIKey         string
 }
 
 type Env = string
 type ModeType string
 
 const (
-	MattermostURL     Env = "MATTERMOST_URL"
-	BotToken          Env = "BOT_TOKEN"
-	BotTeamName       Env = "BOT_TEAM_NAME"
-	BoobsChannelID    Env = "BOOBS_CHANNEL_ID"
 	BirthdayChannelID Env = "BIRTHDAY_CHANNEL_ID"
-	APIURL            Env = "API_URL"
+	BoobsChannelID    Env = "BOOBS_CHANNEL_ID"
+	BotTeamName       Env = "BOT_TEAM_NAME"
+	BotToken          Env = "BOT_TOKEN"
+	HTTPPort          Env = "HTTP_PORT"
+	MattermostURL     Env = "MATTERMOST_URL"
+	OpenAIKey         Env = "OPENAI_KEY"
 )
 
 const (
@@ -45,24 +48,35 @@ func ProvideConfig() (Config, error) {
 		mode = ModeProduction
 	}
 
+	rHTTPPort := os.Getenv(HTTPPort)
+	if rHTTPPort == "" {
+		rHTTPPort = "8080"
+	}
+
+	httpPort, err := strconv.Atoi(rHTTPPort)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to parse HTTP port: %w", err)
+	}
+
 	c := Config{
 		Mode:              mode,
 		MattermostURL:     os.Getenv(MattermostURL),
 		BotToken:          os.Getenv(BotToken),
 		BotTeamName:       os.Getenv(BotTeamName),
 		BoobsChannelID:    os.Getenv(BoobsChannelID),
-		APIURL:            os.Getenv(APIURL),
+		HTTPPort:          httpPort,
 		BirthdayChannelID: os.Getenv(BirthdayChannelID),
+		OpenAIKey:         os.Getenv(OpenAIKey),
 	}
 
-	if err := validate(c); err != nil {
+	if err = c.validate(); err != nil {
 		return c, err
 	}
 
 	return c, nil
 }
 
-func validate(c Config) error {
+func (c Config) validate() error {
 	v := reflect.ValueOf(c)
 
 	for i := 0; i < v.NumField(); i++ {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/kodep/jarvis/internal/api"
@@ -13,68 +14,106 @@ import (
 )
 
 type APIListener struct {
-	apiClient *api.Client
-	client    *mattermost.Client
-	logger    *zap.Logger
-	conf      Config
+	birthday *birthday.Generator
+	client   *mattermost.Client
+	logger   *zap.Logger
+	server   *api.Server
+	conf     Config
 }
 
 func ProvideAPIListener(
-	apiClient *api.Client,
+	birthday *birthday.Generator,
 	client *mattermost.Client,
 	logger *zap.Logger,
+	server *api.Server,
 	conf Config,
 ) APIListener {
 	return APIListener{
-		apiClient: apiClient,
-		client:    client,
-		logger:    logger,
-		conf:      conf,
+		birthday: birthday,
+		client:   client,
+		logger:   logger,
+		server:   server,
+		conf:     conf,
 	}
 }
 
-func (l *APIListener) ListenAPI(ctx context.Context) {
-	l.InitRoutes(ctx)
-	go l.apiClient.ListenAndServe()
+func (l *APIListener) Listen(ctx context.Context) error {
+	l.InitRoutes()
+
+	if err := l.server.ListenAndServe(ctx); err != nil {
+		return fmt.Errorf("failed to start listener: %w", err)
+	}
+
+	return nil
 }
 
-func (l *APIListener) InitRoutes(ctx context.Context) {
-	r := l.apiClient.Router()
-
-	r.HandleFunc("/api/v1/congratulate", func(w http.ResponseWriter, r *http.Request) {
-		l.Congratulate(ctx, w, r)
-	}).Methods("POST")
+func (l *APIListener) InitRoutes() {
+	l.server.Router().
+		HandleFunc("/api/v1/congratulate", l.Congratulate).Methods("POST")
 }
 
-func (l *APIListener) Congratulate(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	message, err := birthday.GetMessage(r)
-	if err != nil {
-		l.logger.Error("getting birthday message error", zap.Error(err))
-		l.SendError(w, err, "Getting birthday message error")
+func (l *APIListener) Congratulate(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	p := congratulatePayload{}
+	if err = p.Read(r); err != nil {
+		l.RespondError(w, err, http.StatusBadRequest)
 		return
 	}
 
-	post := &model.Post{ChannelId: l.conf.BirthdayChannelID, Message: message}
-
-	if _, err = l.client.SendPost(ctx, post); err != nil {
-		l.logger.Error("sending post to client failed", zap.Error(err))
-		l.SendError(w, err, "Sending post to client failed")
+	msg, err := l.birthday.Generate(r.Context(), l.birthday.Prompt(p.Name, p.Description))
+	if err != nil {
+		l.RespondError(w, fmt.Errorf("failed to generate birthday message: %w", err), http.StatusServiceUnavailable)
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(map[string]string{"data": message})
-	if err != nil {
-		l.logger.Error("encoding JSON error: %w", zap.Error(err))
-		l.SendError(w, err, "Encoding JSON error")
+	congratulation := "@channel" + " Поздравляем с Днем Рождения" + " @" + p.NickName + " :tada:!"
+	if msg != "" {
+		congratulation += "\n" + msg
+	}
+
+	post := &model.Post{ChannelId: l.conf.BirthdayChannelID, Message: congratulation}
+	if _, err = l.client.SendPost(r.Context(), post); err != nil {
+		l.RespondError(w, fmt.Errorf("failed to send birthday message: %w", err), http.StatusServiceUnavailable)
+		return
 	}
 }
 
-func (l *APIListener) SendError(w http.ResponseWriter, err error, msg string) {
+func (l *APIListener) RespondError(w http.ResponseWriter, err error, status int) {
+	l.logger.Error("failed process a request", zap.Error(err))
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusInternalServerError)
-	encodingErr := json.NewEncoder(w).Encode(map[string]string{"message": msg, "error": err.Error()})
+	w.WriteHeader(status)
 
-	if encodingErr != nil {
-		l.logger.Error("encoding JSON error: %w", zap.Error(err))
+	r, err := json.Marshal(errorResponse{
+		Error: err.Error(),
+	})
+	if err != nil {
+		l.logger.Error("failed to marshal error response", zap.Error(err))
+		return
 	}
+
+	_, _ = w.Write(r)
+}
+
+type congratulatePayload struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	NickName    string `json:"nick_name"`
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+func (p *congratulatePayload) Read(r *http.Request) error {
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		return fmt.Errorf("failed to decode request: %w", err)
+	}
+
+	if p.Name == "" || p.Description == "" || p.NickName == "" {
+		return fmt.Errorf("name, description and nick_name are required")
+	}
+
+	return nil
 }

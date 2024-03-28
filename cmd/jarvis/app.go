@@ -13,14 +13,19 @@ const (
 )
 
 type App struct {
-	logger      *zap.Logger
-	client      *mattermost.Client
-	listener    Listener
-	apiListener APIListener
+	logger       *zap.Logger
+	client       *mattermost.Client
+	chatListener ChatListener
+	apiListener  APIListener
 }
 
-func ProvideApp(logger *zap.Logger, client *mattermost.Client, listener Listener, apiListener APIListener) App {
-	return App{logger, client, listener, apiListener}
+func ProvideApp(
+	logger *zap.Logger,
+	client *mattermost.Client,
+	chatListener ChatListener,
+	apiListener APIListener,
+) App {
+	return App{logger, client, chatListener, apiListener}
 }
 
 func (a App) Run(ctx context.Context) {
@@ -33,10 +38,13 @@ func (a App) Run(ctx context.Context) {
 	)
 
 	a.logger.Info("Listen for API events")
-	a.apiListener.ListenAPI(ctx)
+	if err := a.apiListener.Listen(ctx); err != nil {
+		a.logger.Error("Failed to start API listener", zap.Error(err))
+		return
+	}
 
 	a.logger.Info("Listen for events")
-	a.listener.Listen(ctx)
+	a.chatListener.Listen(ctx)
 
 	a.logger.Info("Shutting down")
 }
