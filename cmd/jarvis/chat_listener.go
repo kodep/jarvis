@@ -10,20 +10,20 @@ import (
 	"go.uber.org/zap"
 )
 
-type Listener struct {
+type ChatListener struct {
 	client   *mattermost.Client
 	wsClient *mattermost.WSClient
 	logger   *zap.Logger
 	handler  EventsHandler
 }
 
-func ProvideListener(
+func ProvideChatListener(
 	logger *zap.Logger,
 	client *mattermost.Client,
 	wsClient *mattermost.WSClient,
 	handler EventsHandler,
-) Listener {
-	l := Listener{
+) ChatListener {
+	l := ChatListener{
 		client:   client,
 		wsClient: wsClient,
 		logger:   logger,
@@ -32,7 +32,7 @@ func ProvideListener(
 	return l
 }
 
-func (l *Listener) Listen(ctx context.Context) {
+func (l *ChatListener) Listen(ctx context.Context) {
 	const (
 		channelSize     = 10
 		listenersNumber = 10
@@ -77,7 +77,7 @@ func (l *Listener) Listen(ctx context.Context) {
 	}
 }
 
-func (l *Listener) handleEvent(ctx context.Context, e events.Event) {
+func (l *ChatListener) handleEvent(ctx context.Context, e events.Event) {
 	hCtx := handlers.NewContext(ctx, l.logger, l.client, l.wsClient)
 
 	if err := l.handler(hCtx, e); err != nil {

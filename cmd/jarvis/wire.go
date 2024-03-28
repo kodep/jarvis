@@ -13,17 +13,18 @@ func InitializeApp() (App, func(), error) {
 	panic(
 		wire.Build(
 			EventsHandlersSet,
+			oboobs.NewBoobsClient,
+			oboobs.NewButtsClient,
+			ProvideAPIListener,
+			ProvideAPIServer,
 			ProvideApp,
+			ProvideBirthdayGenerator,
+			ProvideChatListener,
 			ProvideConfig,
-			ProvideListener,
 			ProvideLogger,
 			ProvideMattermostClient,
 			ProvideMattermostWSClient,
-			oboobs.NewBoobsClient,
-			oboobs.NewButtsClient,
 			thecatapi.NewClient,
-			ProvideApiClient,
-			ProvideApiListener,
 		),
 	)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kodep/jarvis/internal/api"
+	"github.com/kodep/jarvis/internal/birthday"
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"go.uber.org/zap"
 )
@@ -50,9 +51,15 @@ func ProvideMattermostWSClient(logger *zap.Logger, conf Config) (*mattermost.WSC
 	}), nil
 }
 
-func ProvideAPIClient(logger *zap.Logger, conf Config) *api.Client {
-	return api.NewClient(api.Options{
-		Host:   conf.APIURL,
+func ProvideAPIServer(logger *zap.Logger, conf Config) *api.Server {
+	return api.NewServer(api.Options{
+		Port:   conf.HTTPPort,
 		Logger: logger,
+	})
+}
+
+func ProvideBirthdayGenerator(conf Config) *birthday.Generator {
+	return birthday.NewGenerator(birthday.Options{
+		OpenAIKey: conf.OpenAIKey,
 	})
 }

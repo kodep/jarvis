@@ -40,10 +40,11 @@ func InitializeApp() (App, func(), error) {
 		Cats: thecatapiClient,
 	}
 	eventsHandler := provideEventsHandler(config, mainLogsHandler, mainBoobsAndButtsHandler, mainCatsHandler)
-	listener := ProvideListener(logger, client, wsClient, eventsHandler)
-	apiClient := ProvideAPIClient(logger, config)
-	apiListener := ProvideAPIListener(apiClient, client, logger, config)
-	app := ProvideApp(logger, client, listener, apiListener)
+	chatListener := ProvideChatListener(logger, client, wsClient, eventsHandler)
+	generator := ProvideBirthdayGenerator(config)
+	server := ProvideAPIServer(logger, config)
+	apiListener := ProvideAPIListener(generator, client, logger, server, config)
+	app := ProvideApp(logger, client, chatListener, apiListener)
 	return app, func() {
 		cleanup()
 	}, nil

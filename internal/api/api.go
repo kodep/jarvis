@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,44 +11,66 @@ import (
 )
 
 type Options struct {
-	Host   string
+	Port   int
 	Logger *zap.Logger
 }
 
-type Client struct {
-	client *http.Server
+type Server struct {
+	server *http.Server
 	router *mux.Router
 	logger *zap.Logger
+	port   int
 }
 
-const WriteTimeout = 15 * time.Second
-const ReadTimeout = 15 * time.Second
+const (
+	writeTimeout = 15 * time.Second
+	readTimeout  = 15 * time.Second
+)
 
-func NewClient(options Options) *Client {
+func NewServer(options Options) *Server {
 	r := mux.NewRouter()
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         options.Host,
-		WriteTimeout: WriteTimeout,
-		ReadTimeout:  ReadTimeout,
+		Addr:         fmt.Sprintf(":%d", options.Port),
+		WriteTimeout: writeTimeout,
+		ReadTimeout:  readTimeout,
 	}
 
-	return &Client{
-		client: srv,
+	return &Server{
+		server: srv,
 		logger: options.Logger,
 		router: r,
+		port:   options.Port,
 	}
 }
 
-func (c *Client) Router() *mux.Router {
-	return c.router
+func (s *Server) Router() *mux.Router {
+	return s.router
 }
 
-func (c *Client) ListenAndServe() {
-	err := c.client.ListenAndServe()
+func (s *Server) Listen(ctx context.Context) error {
+	ch := make(chan error)
+	defer close(ch)
 
-	if err != nil {
-		c.logger.Error("HTTP server start failed: ", zap.Error(err))
-	}
+	s.logger.Info("Starting HTTP server", zap.Int("port", s.port))
+
+	go func() {
+		err := s.server.ListenAndServe()
+
+		s.logger.Info("HTTP server stopped")
+
+		if err != http.ErrServerClosed {
+			ch <- fmt.Errorf("failed to start HTTP server: %w", err)
+		} else {
+			ch <- nil
+		}
+	}()
+
+	go func() {
+		<-ctx.Done()
+		_ = s.server.Shutdown(ctx)
+	}()
+
+	return <-ch
 }
