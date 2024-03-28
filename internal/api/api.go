@@ -49,16 +49,28 @@ func (s *Server) Router() *mux.Router {
 	return s.router
 }
 
-func (s *Server) ListenAndServe(ctx context.Context) error {
+func (s *Server) Listen(ctx context.Context) error {
+	ch := make(chan error)
+	defer close(ch)
+
+	s.logger.Info("Starting HTTP server", zap.Int("port", s.port))
+
 	go func() {
-		s.logger.Info("Starting HTTP server", zap.Int("port", s.port))
+		err := s.server.ListenAndServe()
 
-		_ = s.server.ListenAndServe()
+		s.logger.Info("HTTP server stopped")
 
+		if err != http.ErrServerClosed {
+			ch <- fmt.Errorf("failed to start HTTP server: %w", err)
+		} else {
+			ch <- nil
+		}
+	}()
+
+	go func() {
 		<-ctx.Done()
-
 		_ = s.server.Shutdown(ctx)
 	}()
 
-	return nil
+	return <-ch
 }

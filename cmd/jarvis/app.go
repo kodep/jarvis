@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	mattermost "github.com/kodep/jarvis/internal/mattermost/client"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -29,22 +31,35 @@ func ProvideApp(
 }
 
 func (a App) Run(ctx context.Context) {
-	a.connectUntilReady(ctx)
+	g, ctx := errgroup.WithContext(ctx)
 
-	a.logger.Info("Connected to Mattermost",
-		zap.String("ID", a.client.User().Id),
-		zap.String("User", a.client.User().Username),
-		zap.String("Team", a.client.Team().Name),
-	)
+	g.Go(func() error {
+		a.connectUntilReady(ctx)
 
-	a.logger.Info("Listen for API events")
-	if err := a.apiListener.Listen(ctx); err != nil {
-		a.logger.Error("Failed to start API listener", zap.Error(err))
-		return
+		a.logger.Info("Connected to Mattermost",
+			zap.String("ID", a.client.User().Id),
+			zap.String("User", a.client.User().Username),
+			zap.String("Team", a.client.Team().Name),
+		)
+
+		a.logger.Info("Listen for events")
+		a.chatListener.Listen(ctx)
+
+		return nil
+	})
+
+	g.Go(func() error {
+		a.logger.Info("Listen for API events")
+		if err := a.apiListener.Listen(ctx); err != nil {
+			return fmt.Errorf("failed to start API listener: %w", err)
+		}
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		a.logger.Error("App failed", zap.Error(err))
 	}
-
-	a.logger.Info("Listen for events")
-	a.chatListener.Listen(ctx)
 
 	a.logger.Info("Shutting down")
 }

@@ -40,8 +40,8 @@ func ProvideAPIListener(
 func (l *APIListener) Listen(ctx context.Context) error {
 	l.InitRoutes()
 
-	if err := l.server.ListenAndServe(ctx); err != nil {
-		return fmt.Errorf("failed to start listener: %w", err)
+	if err := l.server.Listen(ctx); err != nil {
+		return fmt.Errorf("failed to start HTTP listener: %w", err)
 	}
 
 	return nil
@@ -85,9 +85,7 @@ func (l *APIListener) RespondError(w http.ResponseWriter, err error, status int)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 
-	r, err := json.Marshal(errorResponse{
-		Error: err.Error(),
-	})
+	r, err := json.Marshal(errorResponse{Error: err.Error()})
 	if err != nil {
 		l.logger.Error("failed to marshal error response", zap.Error(err))
 		return
