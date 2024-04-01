@@ -18,6 +18,7 @@ type Config struct {
 	MattermostURL     string
 	Mode              ModeType
 	OpenAIKey         string
+	APISecret         string
 }
 
 type Env = string
@@ -31,6 +32,7 @@ const (
 	HTTPPort          Env = "HTTP_PORT"
 	MattermostURL     Env = "MATTERMOST_URL"
 	OpenAIKey         Env = "OPENAI_KEY"
+	APISecret         Env = "API_SECRET"
 )
 
 const (
@@ -67,6 +69,7 @@ func ProvideConfig() (Config, error) {
 		HTTPPort:          httpPort,
 		BirthdayChannelID: os.Getenv(BirthdayChannelID),
 		OpenAIKey:         os.Getenv(OpenAIKey),
+		APISecret:         os.Getenv(APISecret),
 	}
 
 	if err = c.validate(); err != nil {

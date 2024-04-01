@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/kodep/jarvis/internal/api"
@@ -48,6 +54,7 @@ func (l *APIListener) Listen(ctx context.Context) error {
 }
 
 func (l *APIListener) InitRoutes() {
+	l.server.Router().Use(l.AuthGuard)
 	l.server.Router().
 		HandleFunc("/api/v1/congratulate", l.Congratulate).Methods("POST")
 }
@@ -110,8 +117,32 @@ func (p *congratulatePayload) Read(r *http.Request) error {
 	}
 
 	if p.Name == "" || p.Description == "" || p.NickName == "" {
-		return fmt.Errorf("name, description and nick_name are required")
+		return errors.New("name, description and nick_name are required")
 	}
 
 	return nil
+}
+
+func (l *APIListener) AuthGuard(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+
+		if err != nil {
+			l.RespondError(w, err, http.StatusInternalServerError)
+			return
+		}
+
+		h := hmac.New(sha256.New, []byte(l.conf.APISecret))
+		h.Write(body)
+		hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
+		authHash := r.Header.Get("Authorization")
+
+		if hash != authHash {
+			l.RespondError(w, errors.New("unauthorized"), http.StatusUnauthorized)
+			return
+		}
+
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+		next.ServeHTTP(w, r)
+	})
 }
