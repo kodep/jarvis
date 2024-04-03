@@ -74,7 +74,7 @@ func (l *APIListener) Congratulate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	congratulation := "@channel" + " Поздравляем с Днем Рождения" + " @" + p.NickName + " :tada:!"
+	congratulation := "@channel" + " Поздравляем с Днем Рождения" + " @" + p.NickName + " :tada:"
 	if msg != "" {
 		congratulation += "\n" + msg
 	}
