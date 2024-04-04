@@ -16,9 +16,10 @@ type Options struct {
 }
 
 const maxTokens = 500
-const sytemPrompt = `
+const systemPrompt = `
 Твоя задача оригинально и смешно поздравить человека с днем рождения, с учетом полученных данных о нем.
-Представь что ты работаешь с этим человеком уже давно и у тебя сегодня хорошее настроение`
+Представь что ты работаешь с этим человеком уже давно и у тебя сегодня хорошее настроение.
+Поздравление должно быть только от лица коллектива. В конце не указывай "С уважением..." и т.д.`
 
 func NewGenerator(options Options) *Generator {
 	return &Generator{
@@ -35,7 +36,7 @@ func (g *Generator) Generate(ctx context.Context, prompt string) (string, error)
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
-					Content: sytemPrompt,
+					Content: systemPrompt,
 				},
 				{
 					Role:    openai.ChatMessageRoleUser,
