@@ -1,0 +1,160 @@
+﻿name: jarivs-bot
+on:
+  workflow_dispatch:
+
+jobs:
+  create-namespace:
+    runs-on: self-hosted
+    steps:
+      - name: Fetch secrets from Vault
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            kv/data/infrastructure/k8s-configs/kubeconfig KUBECONFIG;
+            kv/data/infrastructure/harbor HARBOR_URL;
+            kv/data/infrastructure/harbor HARBOR_USER;
+            kv/data/infrastructure/harbor HARBOR_PASSWORD;
+            kv/data/projects/jarvis/jarvis-bot/production K8S_NAMESPACE;
+
+      - name: Set Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ env.KUBECONFIG }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Ensure namespace and docker-registry secrets
+        run: |
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: ${{ env.K8S_NAMESPACE }}
+          EOF
+          kubectl create secret docker-registry ${{ env.HARBOR_URL }} \
+            --namespace=${{ env.K8S_NAMESPACE }} \
+            --docker-server=${{ env.HARBOR_URL }} \
+            --docker-username=${{ env.HARBOR_USER }} \
+            --docker-password='${{ env.HARBOR_PASSWORD }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+  build:
+    runs-on: self-hosted
+    needs: create-namespace
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch Harbor creds from Vault
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            kv/data/infrastructure/harbor HARBOR_URL;
+            kv/data/infrastructure/harbor HARBOR_USER;
+            kv/data/infrastructure/harbor HARBOR_PASSWORD;
+
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HARBOR_URL }}
+          username: ${{ env.HARBOR_USER }}
+          password: ${{ env.HARBOR_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.HARBOR_URL }}/kodep/kodep-jarvis:latest
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ env.KUBECONFIG }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Fetch .env from Vault
+        id: fetch-env-from-vault
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            kv/data/projects/jarvis/jarvis-bot/production *
+
+      - name: Create Kubernetes Secret from .env
+        run: |
+          echo '${{ toJson(steps.fetch-env-from-vault.outputs) }}' > secrets.tmp.json
+            jq -r 'to_entries | .[] | "\(.key)=\(.value)"' secrets.tmp.json > .env
+            rm -f secrets.tmp.json
+          kubectl create secret generic new-jarvis-env \
+            --namespace=${{ env.K8S_NAMESPACE }} \
+            --from-env-file=.env \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Annotate existing resources for Helm adoption
+        run: |
+          RELEASE_NAME="kodep-jarvis"
+          NAMESPACE=${{ env.K8S_NAMESPACE }}
+
+          annotate_resource() {
+            local RESOURCE_TYPE=$1
+            local RESOURCE_NAME=$2
+            
+            if kubectl get $RESOURCE_TYPE $RESOURCE_NAME -n $NAMESPACE &>/dev/null; then
+              
+              kubectl annotate $RESOURCE_TYPE $RESOURCE_NAME -n $NAMESPACE \
+                meta.helm.sh/release-name=$RELEASE_NAME \
+                meta.helm.sh/release-namespace=$NAMESPACE \
+                --overwrite
+              
+              kubectl label $RESOURCE_TYPE $RESOURCE_NAME -n $NAMESPACE \
+                app.kubernetes.io/managed-by=Helm \
+                --overwrite
+              
+            fi
+          }
+
+            
+            annotate_resource deployment kodep-jarvis
+            
+            annotate_resource service kodep-jarvis
+            
+            annotate_resource ingress kodep-jarvis
+            
+            annotate_resource secret new-jarvis-env
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install kodep-jarvis ./helm \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --values ./helm/values.yaml

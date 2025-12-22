@@ -1,0 +1,20 @@
+{{- if .Values.app.enabled | default true }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "jarivs.labels" . | nindent 4 }}
+    app: {{ include "jarivs.app.name" . }}
+spec:
+  type: {{ .Values.app.service.type }}
+  selector:
+    {{- include "jarivs.app.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: {{ .Values.app.service.name }}
+      port: {{ .Values.app.service.port }}
+      targetPort: {{ .Values.app.service.targetPort | default .Values.app.service.port }}
+      protocol: TCP
+  sessionAffinity: None
+{{- end }}
